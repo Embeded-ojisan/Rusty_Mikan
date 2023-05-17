@@ -6,4 +6,7 @@
   - https://doc.rust-jp.rs/book-ja/ch14-03-cargo-workspaces.html
 
 # 参考資料
-- https://github.com/garasubo/erkos/tree/master
+- erkos
+  - https://github.com/garasubo/erkos/tree/master
+- UEFIアプリケーション
+  - https://github.com/garasubo/uefi-practice/blob/master/src/main.rs

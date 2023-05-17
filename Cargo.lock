@@ -7,5 +7,9 @@ name = "apps"
 version = "0.1.0"
 
 [[package]]
+name = "boot"
+version = "0.1.0"
+
+[[package]]
 name = "kernel"
 version = "0.1.0"

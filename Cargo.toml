@@ -2,5 +2,6 @@
 
 members = [
     "apps",
+    "boot",
     "kernel",
 ]
