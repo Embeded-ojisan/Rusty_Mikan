@@ -46,7 +46,7 @@ pub enum EfiStatus {
 #[no_mangle]
 pub extern "C" fn efi_main(image: EfiHandle, st: EfiSystemTable) -> EfiStatus {
     let stdout: &mut EfiSimpleTextOutputProtocol = unsafe { &mut *(st.con_out) };
-    let string = "hello world".as_bytes();
+    let string = "yajuu senpai".as_bytes();
     let mut buf = [0u16; 32];
 
     for i in 0..string.len() {
