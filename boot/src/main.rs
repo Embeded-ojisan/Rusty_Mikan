@@ -56,6 +56,8 @@ pub struct MemoryMap {
 #[no_mangle]
 pub extern "C" fn efi_main(image: EfiHandle, st: EfiSystemTable) -> EfiStatus {
 
+    let bt = st.boot_services();
+
     // メモリマップの取得(osbook_day02b)
 
     unsafe {
