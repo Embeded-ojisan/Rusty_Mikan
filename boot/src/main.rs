@@ -43,15 +43,20 @@ pub enum EfiStatus {
     SUCCESS = 0,
 }
 
+#[repr(C)]
+pub struct MemoryMap {
+    pub buffer_size:            u64,
+    pub buffer:                 void*,
+    pub map_size:               u64,
+    pub map_key:                u64,
+    pub descriptor_size:        u64,
+    pub descriptor_version:     u32,
+}
+
 #[no_mangle]
 pub extern "C" fn efi_main(image: EfiHandle, st: EfiSystemTable) -> EfiStatus {
-    let stdout: &mut EfiSimpleTextOutputProtocol = unsafe { &mut *(st.con_out) };
-    let string = "yajuu senpai".as_bytes();
-    let mut buf = [0u16; 32];
 
-    for i in 0..string.len() {
-        buf[i] = string[i] as u16;
-    }
+    // メモリマップの取得(osbook_day02b)
 
     unsafe {
         (stdout.reset)(stdout, false);
