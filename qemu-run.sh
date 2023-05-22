@@ -1,4 +1,8 @@
 #!/bin/sh
-
-cp ./target/x86_64-unknown-uefi/debug/boot.efi mnt/EFI/BOOT/BOOTx64.EFI
-qemu-system-x86_64 --bios bios/OVMF.fd -drive format=raw,file=fat:rw:mnt
+## kvmへのアクセスができない場合は以下
+## sudo chmod 777 /dev/kvm
+cp target/x86_64-unknown-uefi/debug/boot.efi esp/efi/boot/bootx64.efi
+qemu-system-x86_64 -enable-kvm                                      \
+    -drive if=pflash,format=raw,readonly=on,file=bios/OVMF_CODE.fd  \
+    -drive if=pflash,format=raw,readonly=on,file=bios/OVMF_VARS.fd  \
+    -drive format=raw,file=fat:rw:esp
