@@ -1,5 +1,4 @@
 [build]
-rustflags = ["-Ctarget-cpu=native", "-Cpanic=abort"]
 target = "./x86_64-unknown-none-rusty_mikan.json"
 
 [unstable]
