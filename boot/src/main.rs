@@ -1,18 +1,18 @@
 #![no_main]
 #![no_std]
 
-use core::{mem, slice};
-
-use goblin::elf;
-
 use log::info;
-
 use uefi::prelude::*;
-use uefi::table::boot::{AllocateType, MemoryDescriptor, MemoryType};
-use uefi::table::cfg::ACPI_GUID;
-use uefi::table::Runtime;
-use uefi::proto::media::fs::SimpleFileSystem;
-use uefi::proto::console::gop::{GraphicsOutput, PixelFormat};
+
+struct MemmoryMap {
+    ,
+}
+
+impl MemmoryMap {
+    pub fn GetMemoryMap(&self, image_handle: Handle) -> Status {
+        ;
+    }
+}
 
 #[entry]
 fn main(_image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
@@ -20,9 +20,13 @@ fn main(_image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     info!("Hello world!");
     system_table.boot_services().stall(10_000_000);
 
-    // カーネルのイメージの取り出し
+    // メモリマップを取得
 
-    // elfファイルの取り出し
+    // カーネルファイルを読み出し
+
+    // カーネル起動前にブートサービスを停止
+
+    // カーネルを起動
     
     Status::SUCCESS
 }
