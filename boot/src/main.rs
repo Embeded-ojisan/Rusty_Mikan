@@ -5,13 +5,26 @@ use log::info;
 use uefi::prelude::*;
 
 struct MemmoryMap {
-    ,
+    buffer_size:,
+    buffer:         &mut[],
+    map_size:,
+    map_key:,
+    descriptor_size:,
+    descriptor_version:,
 }
 
 impl MemmoryMap {
-    pub fn GetMemoryMap(&self, image_handle: Handle) -> Status {
+    pub fn new {
         ;
-    }
+    },
+
+    pub fn GetMemoryMap(&self, system_table: SystemTable<Boot>) -> Status {
+        system_table.memory_map(buffer);
+    },
+
+    pub fn GetMemoryTypeUnicode(&self) -> {
+        ;
+    },
 }
 
 #[entry]
