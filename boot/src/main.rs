@@ -7,25 +7,25 @@ extern crate alloc;
 use uefi::prelude::*;
 use uefi::allocator::*;
 
+use alloc::vec;
 use alloc::vec::Vec;
 use log::info;
 
-struct MemmoryMap<'a> {
+struct MemmoryMap {
     buffer_size: usize,
-    buffer: Option<Vec<&'a u8>>,
+    buffer: Vec<u8>,
     map_size: usize,
     map_key: usize,
     descriptor_size: usize,
     descriptor_version: usize,
 }
 
-impl<'a> MemmoryMap<'a> {
-    pub fn new(inp_buffer_size: usize) -> Self {
-        let mut buffer = Vec::with_capacity(inp_buffer_size);
-        buffer.resize(inp_buffer_size, &0u8);
+impl MemmoryMap {
+    pub fn new(inp_buffer_size: usize) -> MemmoryMap {
+        let buffer = vec![0u8; inp_buffer_size];
         MemmoryMap {
             buffer_size: inp_buffer_size,
-            buffer: Some(buffer),
+            buffer: buffer,
             map_size: 0,
             map_key: 0,
             descriptor_size: 0,
