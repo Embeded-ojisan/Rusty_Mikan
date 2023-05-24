@@ -11,9 +11,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 use log::info;
 
+use core::option::Option;
+
 struct MemmoryMap {
     buffer_size: usize,
-    buffer: Vec<u8>,
+    buffer: Option<Vec<u8>>,
     map_size: usize,
     map_key: usize,
     descriptor_size: usize,
@@ -21,25 +23,48 @@ struct MemmoryMap {
 }
 
 impl MemmoryMap {
-    pub fn new(inp_buffer_size: usize) -> MemmoryMap {
-        let buffer = vec![0u8; inp_buffer_size];
+    pub fn new(
+        inBuffer_size: usize,
+    ) 
+    -> Self {
+        let buffer = vec![0u8; inBuffer_size];
         MemmoryMap {
-            buffer_size: inp_buffer_size,
-            buffer: buffer,
-            map_size: 0,
-            map_key: 0,
-            descriptor_size: 0,
-            descriptor_version: 0,
+            buffer_size:            inBuffer_size,
+            buffer:                 Some(buffer),
+            map_size:               0,
+            map_key:                0,
+            descriptor_size:        0,
+            descriptor_version:     0,
         }
     }
-/*
-    pub fn GetMemoryMap(&self, system_table: SystemTable<Boot>) -> Status {
-        system_table.memory_map(buffer);
-    },
 
+    pub fn GetMemoryMap(
+        &mut self,
+        system_table: SystemTable<Boot>,
+    ) -> Status {
+        match self.buffer.as_mut() {
+            Some(buf) => {
+                system_table
+                    .boot_services()
+                    .memory_map(
+                        buf.as_mut_slice()
+                    );
+                Status::SUCCESS
+            },
+            None => Status::BUFFER_TOO_SMALL,
+        }
+    }
+
+/*
     pub fn GetMemoryTypeUnicode(&self) ->Self {
         ;
-    },
+    }
+*/
+/*
+    pub fn SaveMemmoryMap(&self, system_table: SystemTable<Boot>)
+        -> SystemTable<Boot> {
+            ;
+    }
 */
 }
 
@@ -51,6 +76,7 @@ fn main(_image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     // メモリマップを取得
     let mut memmap = MemmoryMap::new(4096*4);
+    memmap.GetMemoryMap(system_table);
 
     // カーネルファイルを読み出し
 
