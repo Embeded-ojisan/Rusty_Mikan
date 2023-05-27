@@ -6,16 +6,29 @@ extern crate alloc;
 use uefi::prelude::*;
 use uefi::allocator::*;
 
-use uefi::proto::media::fs::SimpleFileSystem;
+use uefi::proto::media::{
+    fs::SimpleFileSystem,
+    file::{
+        FileHandle,
+        FileAttribute,
+        FileMode,
+        File,
+    },
+};
+
 use uefi::proto::device_path::{
-    text::DevicePathToText,
+    text::DevicePathFromText,
     build::DevicePathBuilder,
 };
+
 use uefi::table::boot::{
     SearchType,
     ScopedProtocol,
 };
+
 use uefi::Identify;
+
+use uefi::CStr16;
 
 
 use alloc::vec;
@@ -23,6 +36,7 @@ use alloc::vec::Vec;
 use log::info;
 
 use core::option::Option;
+use core::ops::DerefMut;
 
 /*
 use uefi::proto::device_path::text::{
@@ -60,12 +74,11 @@ impl MemmoryMap {
 
     pub fn GetMemoryMap(
         &mut self,
-        system_table: SystemTable<Boot>,
+        boot_services: &BootServices,
     ) -> Status {
         match self.buffer.as_mut() {
             Some(buf) => {
-                system_table
-                    .boot_services()
+                boot_services
                     .memory_map(
                         buf.as_mut_slice()
                     );
@@ -74,21 +87,19 @@ impl MemmoryMap {
             None => Status::BUFFER_TOO_SMALL,
         }
     }
-/*
-    pub fn SaveMemmoryMap(
+    pub fn SaveMemoryMap(
         &self, 
-        system_table: SystemTable<Boot>
+        handle: FileHandle
     )
         -> Status {
-            ;
+            Status::SUCCESS
     }
-*/
 }
 
 
 struct EfiProtocols<'a> {
     mSimpleFileSystem:      ScopedProtocol<'a, SimpleFileSystem>,
-    mDevicePathToText:      ScopedProtocol<'a, DevicePathToText>,
+    mDevicePathFromText:      ScopedProtocol<'a, DevicePathFromText>,
 //    mDevicePathBuilder:     ScopedProtocol<'a, DevicePathBuilder>,
 }
 
@@ -104,34 +115,14 @@ impl<'a> EfiProtocols<'a> {
                         boot_services.image_handle()
                 ).unwrap(),
 
-            mDevicePathToText:
+            mDevicePathFromText:
                 boot_services
-                    .open_protocol_exclusive::<DevicePathToText>(
+                    .open_protocol_exclusive::<DevicePathFromText>(
                         boot_services.image_handle()
                 ).unwrap(),
-
-/*
-            mDevicePathBuilder:
-                boot_services
-                    .open_protocol_exclusive::<DevicePathBuilder>(
-                        boot_services.image_handle()
-                ).unwrap(),
-*/
-
         }
     }
 }
-/*
-fn OpenRootDir(
-    image_handle: Handle,
-    root: uefi::file
-) -> Status {
-    uefi
-
-
-    Status::SUCCESS
-}
-*/
 
 #[entry]
 fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
@@ -140,8 +131,27 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     system_table.boot_services().stall(10_000_000);
 
     // 前処理
+    let boot_services = system_table.boot_services();
+
     let mut memmap = MemmoryMap::new(4096*4);
-    memmap.GetMemoryMap(system_table);
+    memmap.GetMemoryMap(&boot_services);
+
+    let mut efiprotocols = EfiProtocols::new(&boot_services);
+
+    let mut root_dir = 
+        (*(efiprotocols.mSimpleFileSystem.deref_mut()))
+            .open_volume()
+            .unwrap();
+
+    let memmap_h = root_dir.open(
+        cstr16!("memmap"),
+        FileMode::CreateReadWrite,
+        FileAttribute::empty(),
+    ).unwrap();
+
+    memmap.SaveMemoryMap(
+        memmap_h
+    );
 
     // メモリマップを取得
 
