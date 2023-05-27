@@ -8,12 +8,7 @@ use uefi::allocator::*;
 
 use uefi::proto::media::{
     fs::SimpleFileSystem,
-    file::{
-        FileHandle,
-        FileAttribute,
-        FileMode,
-        File,
-    },
+    file::*
 };
 
 use uefi::proto::device_path::{
@@ -38,14 +33,6 @@ use log::info;
 use core::option::Option;
 use core::ops::DerefMut;
 
-/*
-use uefi::proto::device_path::text::{
-    AllowShortcuts, DevicePathToText, DisplayOnly,
-};
-use uefi::proto::loaded_image::LoadedImage;
-use uefi::table::boot::SearchType;
-use uefi::{Identify, Result};
-*/
 
 struct MemmoryMap {
     buffer_size: usize,
@@ -90,8 +77,7 @@ impl MemmoryMap {
     pub fn SaveMemoryMap(
         &self, 
         handle: FileHandle
-    )
-        -> Status {
+    ) -> Status {
             Status::SUCCESS
     }
 }
@@ -100,7 +86,6 @@ impl MemmoryMap {
 struct EfiProtocols<'a> {
     mSimpleFileSystem:      ScopedProtocol<'a, SimpleFileSystem>,
     mDevicePathFromText:      ScopedProtocol<'a, DevicePathFromText>,
-//    mDevicePathBuilder:     ScopedProtocol<'a, DevicePathBuilder>,
 }
 
 impl<'a> EfiProtocols<'a> {
@@ -143,19 +128,32 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
             .open_volume()
             .unwrap();
 
-    let memmap_h = root_dir.open(
+    // メモリマップを取得
+    let memmap_hadle = root_dir.open(
         cstr16!("memmap"),
         FileMode::CreateReadWrite,
         FileAttribute::empty(),
     ).unwrap();
 
     memmap.SaveMemoryMap(
-        memmap_h
+        memmap_hadle
     );
 
-    // メモリマップを取得
-
     // カーネルファイルを読み出し
+    let kernel_file_handle = root_dir.open(
+        cstr16!("kernel.elf"),
+        FileMode::Read,
+        FileAttribute::READ_ONLY,
+    ).unwrap();
+
+    if let Some(mut regular) = kernel_file_handle.into_regular_file() {
+        let mut file_info_buffer = [0; 1000];
+        let file_info_handle: &mut FileInfo = 
+            regular
+                .get_info(&mut file_info_buffer)
+                .unwrap();
+        let kernel_file_size = file_info_handle.file_size();
+    }
 
     // カーネル起動前にブートサービスを停止
 
