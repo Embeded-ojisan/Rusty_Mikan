@@ -4,22 +4,21 @@
 extern crate alloc;
 
 use uefi::prelude::*;
-use uefi::allocator::*;
+//use uefi::allocator::*;
 
 use uefi::proto::media::{
     fs::SimpleFileSystem,
     file::*
 };
 
+use uefi::proto::loaded_image::LoadedImage;
+
 use uefi::proto::device_path::{
     text::DevicePathFromText,
     build::DevicePathBuilder,
 };
 
-use uefi::table::boot::{
-    SearchType,
-    ScopedProtocol,
-};
+use uefi::table::boot::*;
 
 use uefi::Identify;
 
@@ -82,29 +81,36 @@ impl MemmoryMap {
     }
 }
 
-
 struct EfiProtocols<'a> {
     mSimpleFileSystem:      ScopedProtocol<'a, SimpleFileSystem>,
-    mDevicePathFromText:      ScopedProtocol<'a, DevicePathFromText>,
+//    mDevicePathFromText:      ScopedProtocol<'a, DevicePathFromText>,
 }
 
 impl<'a> EfiProtocols<'a> {
     pub fn new(
-        boot_services: &'a uefi::prelude::BootServices,
+        image_handle:   &'a Handle,
+        boot_services:  &'a uefi::prelude::BootServices,
     ) -> Self {
 
         EfiProtocols {
+
             mSimpleFileSystem: 
                 boot_services
-                    .open_protocol_exclusive::<SimpleFileSystem>(
-                        boot_services.image_handle()
-                ).unwrap(),
+                    .get_image_file_system(*image_handle)
+                    .unwrap(),
 
+/*
             mDevicePathFromText:
                 boot_services
-                    .open_protocol_exclusive::<DevicePathFromText>(
-                        boot_services.image_handle()
+                    .open_protocol::<DevicePathFromText>(
+                        OpenProtocolParams {
+                            boot_services.image_handle(),
+                            agent: boot_services.image_handle(),
+                            controller: None,
+                        },
+                        OpenProtocolAttributes::GetProtocol
                 ).unwrap(),
+*/
         }
     }
 }
@@ -113,7 +119,6 @@ impl<'a> EfiProtocols<'a> {
 fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     uefi_services::init(&mut system_table).unwrap();
     info!("Hello world!");
-    system_table.boot_services().stall(10_000_000);
 
     // 前処理
     let boot_services = system_table.boot_services();
@@ -121,16 +126,12 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     let mut memmap = MemmoryMap::new(4096*4);
     memmap.GetMemoryMap(&boot_services);
 
-    let mut efiprotocols = EfiProtocols::new(&boot_services);
-
-    let mut root_dir = 
-        (*(efiprotocols.mSimpleFileSystem.deref_mut()))
-            .open_volume()
-            .unwrap();
+    let mut simple_file_system = boot_services.get_image_file_system(image_handle).unwrap();
+    let mut root_dir = simple_file_system.open_volume().unwrap();
 
     // メモリマップを取得
     let memmap_hadle = root_dir.open(
-        cstr16!("memmap"),
+        cstr16!("\\memmap"),
         FileMode::CreateReadWrite,
         FileAttribute::empty(),
     ).unwrap();
@@ -141,9 +142,9 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     // カーネルファイルを読み出し
     let kernel_file_handle = root_dir.open(
-        cstr16!("kernel.elf"),
-        FileMode::Read,
-        FileAttribute::READ_ONLY,
+        cstr16!("\\kernel.elf"),
+        uefi::proto::media::file::FileMode::Read,
+        FileAttribute::from_bits(0).unwrap(),
     ).unwrap();
 
     if let Some(mut regular) = kernel_file_handle.into_regular_file() {
@@ -153,11 +154,51 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
                 .get_info(&mut file_info_buffer)
                 .unwrap();
         let kernel_file_size = file_info_handle.file_size();
+        
+        let kernel_base_addr = 0x100000;
+        let kernel_physical_addr = 
+            boot_services
+                .allocate_pages(
+                    uefi::table::boot::AllocateType::Address(
+                        kernel_base_addr as u64
+                    ),
+                    MemoryType::LOADER_DATA,
+                    ((kernel_file_size + 0xfff)/0x1000) as usize,
+                )
+                .unwrap();
     }
+
+/*
+    let mut efiprotocols = EfiProtocols::new(&image_handle, &boot_services);
+
+    let mut simple_file_system = 
+        boot_services
+            .get_image_file_system(image_handle)
+            .unwrap();
+    
+    let mut root_dir = 
+        (*(efiprotocols.mSimpleFileSystem.deref_mut()))
+            .open_volume()
+            .unwrap();    
+*/
+
+    /*
+    let mut root = 
+        (*(efiprotocols.mSimpleFileSystem.deref_mut()))
+            .open_volume()
+            .unwrap();
+    */
 
     // カーネル起動前にブートサービスを停止
 
     // カーネルを起動
+/*
+    boot_services
+    .open_protocol_exclusive::<SimpleFileSystem>(
+        boot_services.image_handle()
+).unwrap();
+*/
     
+    system_table.boot_services().stall(10000000000000);
     Status::SUCCESS
 }

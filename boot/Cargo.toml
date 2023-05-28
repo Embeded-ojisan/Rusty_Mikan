@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-uefi = "0.21"
-uefi-services = "0.18"
+goblin = {version = "0.6", default-features = false, features = ["elf32", "elf64", "endian_fd"]}
+uefi = {version = "0.19.0", features = ["alloc", "logger"]}
+uefi-services = "0.16.0"

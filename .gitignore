@@ -1,4 +1,4 @@
 **/target/
-**/bios/
+/bios/*
 **/mnt/
 **/esp/
