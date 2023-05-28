@@ -29,6 +29,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::*;
 use log::info;
+use alloc::rc::Rc;
 
 use core::option::Option;
 use core::ops::DerefMut;
@@ -156,9 +157,12 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         FileAttribute::from_bits(0).unwrap(),
     ).unwrap();
 
+    let rc_kernel_file_handle = Rc::new(kernel_file_handle);
+    let rc_kernel_file_handle_2 = rc_kernel_file_handle.clone();
+
     let mut file_info_buffer = [0; 1000];
     let file_info_handle: &mut FileInfo = 
-        kernel_file_handle
+        rc_kernel_file_handle
             .into_regular_file()
             .unwrap()
             .get_info(&mut file_info_buffer)
@@ -187,7 +191,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         };
 
 
-    kernel_file_handle
+    rc_kernel_file_handle_2
         .into_regular_file()
         .unwrap()
         .read(
