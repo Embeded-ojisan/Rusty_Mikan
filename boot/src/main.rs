@@ -158,7 +158,9 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     let mut file_info_buffer = [0; 1000];
     let file_info_handle: &mut FileInfo = 
-    kernel_file_handle.into_regular_file().unwrap()
+    kernel_file_handle
+            .into_regular_file()
+            .unwrap()
             .get_info(&mut file_info_buffer)
             .unwrap();
     let kernel_file_size = file_info_handle.file_size();
@@ -174,6 +176,14 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
                 ((kernel_file_size + 0xfff)/0x1000) as usize,
             )
             .unwrap();
+
+    let buf: &mut [u8] = kernel_physical_addr;
+    kernel_file_handle
+        .into_regular_file()
+        .unwrap()
+        .read(
+            buf
+        );
 
 /*
     let mut efiprotocols = EfiProtocols::new(&image_handle, &boot_services);
