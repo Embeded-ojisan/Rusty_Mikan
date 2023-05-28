@@ -27,10 +27,12 @@ use uefi::CStr16;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use alloc::string::*;
 use log::info;
 
 use core::option::Option;
 use core::ops::DerefMut;
+use core::any::type_name;
 
 
 struct MemmoryMap {
@@ -115,6 +117,11 @@ impl<'a> EfiProtocols<'a> {
     }
 }
 
+fn type_of<T>(_: T) -> String{
+    let a = core::any::type_name::<T>();
+    return a.to_string();
+  }
+
 #[entry]
 fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     uefi_services::init(&mut system_table).unwrap();
@@ -147,26 +154,26 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         FileAttribute::from_bits(0).unwrap(),
     ).unwrap();
 
-    if let Some(mut regular) = kernel_file_handle.into_regular_file() {
-        let mut file_info_buffer = [0; 1000];
-        let file_info_handle: &mut FileInfo = 
-            regular
-                .get_info(&mut file_info_buffer)
-                .unwrap();
-        let kernel_file_size = file_info_handle.file_size();
+    info!("{}", type_of(&kernel_file_handle));
+
+    let mut file_info_buffer = [0; 1000];
+    let file_info_handle: &mut FileInfo = 
+    kernel_file_handle.into_regular_file().unwrap()
+            .get_info(&mut file_info_buffer)
+            .unwrap();
+    let kernel_file_size = file_info_handle.file_size();
         
-        let kernel_base_addr = 0x100000;
-        let kernel_physical_addr = 
-            boot_services
-                .allocate_pages(
-                    uefi::table::boot::AllocateType::Address(
-                        kernel_base_addr as u64
-                    ),
-                    MemoryType::LOADER_DATA,
-                    ((kernel_file_size + 0xfff)/0x1000) as usize,
-                )
-                .unwrap();
-    }
+    let kernel_base_addr = 0x100000;
+    let kernel_physical_addr = 
+        boot_services
+            .allocate_pages(
+                uefi::table::boot::AllocateType::Address(
+                    kernel_base_addr as u64
+                ),
+                MemoryType::LOADER_DATA,
+                ((kernel_file_size + 0xfff)/0x1000) as usize,
+            )
+            .unwrap();
 
 /*
     let mut efiprotocols = EfiProtocols::new(&image_handle, &boot_services);
