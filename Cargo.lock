@@ -23,6 +23,7 @@ name = "boot"
 version = "0.1.0"
 dependencies = [
  "goblin",
+ "lib",
  "log",
  "uefi",
  "uefi-services",
@@ -48,6 +49,17 @@ dependencies = [
 [[package]]
 name = "kernel"
 version = "0.1.0"
+dependencies = [
+ "lib",
+]
+
+[[package]]
+name = "lib"
+version = "0.1.0"
+dependencies = [
+ "uefi",
+ "uefi-services",
+]
 
 [[package]]
 name = "log"

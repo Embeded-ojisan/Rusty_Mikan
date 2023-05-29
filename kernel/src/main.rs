@@ -4,8 +4,13 @@
 
 use core::arch::asm;
 
+use lib::{KernelArguments, FrameBufferInfo, ModeInfo, PixelFormat};
+
 #[no_mangle]
-pub extern "C" fn kernel_main() {
+pub extern "efiapi" fn kernel_main(
+    args: &KernelArguments
+) {
+
     loop {
         unsafe { asm!("hlt") }
     }

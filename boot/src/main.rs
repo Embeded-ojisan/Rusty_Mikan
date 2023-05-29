@@ -1,6 +1,8 @@
 #![no_main]
 #![no_std]
 
+#![feature(abi_efiapi)]
+
 extern crate alloc;
 
 use uefi::prelude::*;
@@ -16,6 +18,11 @@ use uefi::proto::loaded_image::LoadedImage;
 use uefi::proto::device_path::{
     text::DevicePathFromText,
     build::DevicePathBuilder,
+};
+
+use uefi::proto::console::gop::{
+//    ModeInfo,
+    GraphicsOutput,
 };
 
 use uefi::table::boot::*;
@@ -37,6 +44,7 @@ use core::any::type_name;
 use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
 
+use lib::{KernelArguments, FrameBufferInfo, ModeInfo};
 
 struct MemmoryMap {
     buffer_size: usize,
@@ -200,37 +208,53 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
             buf
         );
 
-/*
-    let mut efiprotocols = EfiProtocols::new(&image_handle, &boot_services);
 
-    let mut simple_file_system = 
+    let graphics_output: &mut GraphicsOutput = unsafe {
         boot_services
-            .get_image_file_system(image_handle)
-            .unwrap();
+            .locate_protocol::<GraphicsOutput>()
+            .unwrap()
+            .get()
+            .as_mut()
+            .unwrap()
+        };
     
-    let mut root_dir = 
-        (*(efiprotocols.mSimpleFileSystem.deref_mut()))
-            .open_volume()
-            .unwrap();    
-*/
+    let mut mode_info: ModeInfo = 
+        graphics_output
+            .current_mode_info()
+            .into();
+    
+    let mut frame_buffer = 
+        graphics_output
+            .frame_buffer();
 
-    /*
-    let mut root = 
-        (*(efiprotocols.mSimpleFileSystem.deref_mut()))
-            .open_volume()
-            .unwrap();
-    */
-
-    // カーネル起動前にブートサービスを停止
-
-    // カーネルを起動
+    let mut frame_buffer_info = 
+        FrameBufferInfo {
+            fb:
+                frame_buffer
+                    .as_mut_ptr(),
+            size:
+                frame_buffer
+                    .size(),
+        };
+    
 /*
-    boot_services
-    .open_protocol_exclusive::<SimpleFileSystem>(
-        boot_services.image_handle()
-).unwrap();
+    system_table
+        .exit_boot_services(
+            image_handle,
+            &mut file_info_buffer
+        );
 */
+
+    let args =
+        KernelArguments {
+            frame_buffer_info: frame_buffer_info,
+            mode_info: mode_info,
+        };
+
+    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
+        unsafe { transmute((kernel_base_addr + 24) as u64) };
+
+    kernel_main(&args);
     
-    system_table.boot_services().stall(10000000000000);
     Status::SUCCESS
 }
