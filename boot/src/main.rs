@@ -157,12 +157,9 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         FileAttribute::from_bits(0).unwrap(),
     ).unwrap();
 
-    let rc_kernel_file_handle = Rc::new(kernel_file_handle);
-    let rc_kernel_file_handle_2 = rc_kernel_file_handle.clone();
-
     let mut file_info_buffer = [0; 1000];
     let file_info_handle: &mut FileInfo = 
-        rc_kernel_file_handle
+        kernel_file_handle
             .into_regular_file()
             .unwrap()
             .get_info(&mut file_info_buffer)
@@ -171,7 +168,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     info!("{}", type_of(&kernel_file_size));
 
-    let n_of_pages = ((kernel_file_size + 0xfff)/0x1000);
+    let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
 
     let kernel_base_addr = 0x100000;
     let kernel_physical_addr = 
@@ -190,8 +187,13 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
             from_raw_parts_mut(kernel_physical_addr as *mut u8, kernel_file_size as usize)
         };
 
+    let kernel_file_handle = root_dir.open(
+        cstr16!("\\kernel.elf"),
+        uefi::proto::media::file::FileMode::Read,
+        FileAttribute::from_bits(0).unwrap(),
+    ).unwrap();
 
-    rc_kernel_file_handle_2
+    kernel_file_handle
         .into_regular_file()
         .unwrap()
         .read(
