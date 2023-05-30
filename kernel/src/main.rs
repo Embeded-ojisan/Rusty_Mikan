@@ -3,6 +3,7 @@
 //#![feature(asm)]
 
 use core::arch::asm;
+use lib::KernelArguments;
 
 #[no_mangle]
 pub extern "efiapi" fn kernel_main(

@@ -7,6 +7,7 @@ extern crate alloc;
 
 use uefi::prelude::*;
 //use uefi::allocator::*;
+use uefi::global_allocator::exit_boot_services;
 
 use uefi::proto::media::{
     fs::SimpleFileSystem,
@@ -44,7 +45,11 @@ use core::any::type_name;
 use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
 
+use byteorder::{ByteOrder, LittleEndian};
+use goblin::elf::{self};
+
 use lib::{KernelArguments};
+
 struct MemmoryMap {
     buffer_size: usize,
     buffer: Option<Vec<u8>>,
@@ -138,49 +143,64 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     info!("Hello world!");
 
     // 前処理
-    let boot_services = system_table.boot_services();
-
     let mut memmap = MemmoryMap::new(4096*4);
-    memmap.GetMemoryMap(&boot_services);
+    memmap.GetMemoryMap(&(system_table.boot_services()));
 
-    let mut simple_file_system = boot_services.get_image_file_system(image_handle).unwrap();
-    let mut root_dir = simple_file_system.open_volume().unwrap();
+    let mut simple_file_system = 
+        system_table
+            .boot_services()
+            .get_image_file_system(image_handle)
+            .unwrap();
+    
+    let mut root_dir = 
+        simple_file_system
+            .open_volume()
+            .unwrap();
 
     // メモリマップを取得
-    let memmap_hadle = root_dir.open(
-        cstr16!("\\memmap"),
-        FileMode::CreateReadWrite,
-        FileAttribute::empty(),
-    ).unwrap();
+    let memmap_hadle = 
+        root_dir.
+            open(
+                cstr16!("\\memmap"),
+                FileMode::CreateReadWrite,
+                FileAttribute::empty(),
+            )
+            .unwrap();
 
     memmap.SaveMemoryMap(
         memmap_hadle
     );
 
     // カーネルファイルを読み出し
-    let kernel_file_handle = root_dir.open(
-        cstr16!("\\kernel.elf"),
-        uefi::proto::media::file::FileMode::Read,
-        FileAttribute::from_bits(0).unwrap(),
-    ).unwrap();
+    let kernel_file_handle = 
+        root_dir.open(
+            cstr16!("\\kernel.elf"),
+            uefi::proto::media::file::FileMode::Read,
+            FileAttribute::from_bits(0).unwrap(),
+            )
+            .unwrap();
 
     let mut file_info_buffer = [0; 1000];
+
     let file_info_handle: &mut FileInfo = 
         kernel_file_handle
             .into_regular_file()
             .unwrap()
             .get_info(&mut file_info_buffer)
             .unwrap();
-    let kernel_file_size = file_info_handle.file_size();
+
+    let kernel_file_size = 
+        file_info_handle
+            .file_size();
 
     info!("{}", type_of(&kernel_file_size));
-    info!("{}", kernel_file_size);
 
     let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
 
     let kernel_base_addr = 0x100000;
     let kernel_physical_addr = 
-        boot_services
+        system_table
+            .boot_services()
             .allocate_pages(
                 uefi::table::boot::AllocateType::Address(
                     kernel_base_addr as u64
@@ -192,14 +212,19 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     let buf: &mut [u8] = 
         unsafe {
-            from_raw_parts_mut(kernel_physical_addr as *mut u8, kernel_file_size as usize)
+            from_raw_parts_mut(
+                kernel_physical_addr as *mut u8,
+                kernel_file_size as usize
+            )
         };
 
-    let kernel_file_handle = root_dir.open(
-        cstr16!("\\kernel.elf"),
-        uefi::proto::media::file::FileMode::Read,
-        FileAttribute::from_bits(0).unwrap(),
-    ).unwrap();
+    let kernel_file_handle = 
+        root_dir.open(
+            cstr16!("\\kernel.elf"),
+            uefi::proto::media::file::FileMode::Read,
+            FileAttribute::from_bits(0).unwrap(),
+        ).
+        unwrap();
 
     kernel_file_handle
         .into_regular_file()
@@ -238,13 +263,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         };
 */
     
-/*
-    system_table
-        .exit_boot_services(
-            image_handle,
-            &mut file_info_buffer
-        );
-*/
+    exit_boot_services();
 
     let args =
         KernelArguments {
@@ -252,10 +271,18 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 //            mode_info: mode_info,
         };
 
-    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
-        unsafe { transmute((kernel_base_addr + 24) as u64) };
+    let buf = unsafe { core::slice::from_raw_parts((kernel_physical_addr as u64 + 24) as *mut u8, 8)};
+    let kernel_main_address = LittleEndian::read_u64(&buf);
+    info!("{:x}", kernel_main_address);
 
-    info!("{}", (kernel_base_addr + 24) as u64);
+    /* なぜか0x100120とずれて0x101120となる */
+    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
+        unsafe{ transmute(kernel_main_address) };
+
+/*
+    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
+        unsafe{ transmute(0x100120 as u64) };
+*/
 
     kernel_main(&args);
 

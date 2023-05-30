@@ -2,6 +2,7 @@
 ## kvmへのアクセスができない場合は以下
 ## sudo chmod 777 /dev/kvm
 cd ./boot && ./xbuild.sh && cd ../ || exit
+cd ./kernel && cargo build && cd ../ || exit
 
 mkdir -p esp/bios/
 mkdir -p esp/efi/boot/
