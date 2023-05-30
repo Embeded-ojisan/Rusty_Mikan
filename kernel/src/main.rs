@@ -4,8 +4,6 @@
 
 use core::arch::asm;
 
-use lib::{KernelArguments, FrameBufferInfo, ModeInfo, PixelFormat};
-
 #[no_mangle]
 pub extern "efiapi" fn kernel_main(
     args: &KernelArguments

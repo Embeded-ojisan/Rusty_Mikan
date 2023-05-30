@@ -44,8 +44,7 @@ use core::any::type_name;
 use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
 
-use lib::{KernelArguments, FrameBufferInfo, ModeInfo};
-
+use lib::{KernelArguments};
 struct MemmoryMap {
     buffer_size: usize,
     buffer: Option<Vec<u8>>,
@@ -175,6 +174,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     let kernel_file_size = file_info_handle.file_size();
 
     info!("{}", type_of(&kernel_file_size));
+    info!("{}", kernel_file_size);
 
     let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
 
@@ -208,7 +208,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
             buf
         );
 
-
+/*
     let graphics_output: &mut GraphicsOutput = unsafe {
         boot_services
             .locate_protocol::<GraphicsOutput>()
@@ -236,6 +236,7 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
                 frame_buffer
                     .size(),
         };
+*/
     
 /*
     system_table
@@ -247,14 +248,18 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     let args =
         KernelArguments {
-            frame_buffer_info: frame_buffer_info,
-            mode_info: mode_info,
+//            frame_buffer_info: frame_buffer_info,
+//            mode_info: mode_info,
         };
 
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe { transmute((kernel_base_addr + 24) as u64) };
 
+    info!("{}", (kernel_base_addr + 24) as u64);
+
     kernel_main(&args);
-    
+
+    info!("Bad!!!!!!!!!!");
+
     Status::SUCCESS
 }

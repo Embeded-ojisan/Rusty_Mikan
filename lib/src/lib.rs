@@ -4,8 +4,8 @@
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct KernelArguments {
-    pub frame_buffer_info: FrameBufferInfo,
-    pub mode_info: ModeInfo,
+//    pub frame_buffer_info: FrameBufferInfo,
+//    pub mode_info: ModeInfo,
 }
 
 #[repr(C)]
