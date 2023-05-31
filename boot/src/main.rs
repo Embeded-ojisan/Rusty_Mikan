@@ -22,7 +22,7 @@ use uefi::proto::device_path::{
 };
 
 use uefi::proto::console::gop::{
-//    ModeInfo,
+    ModeInfo,
     GraphicsOutput,
 };
 
@@ -31,6 +31,8 @@ use uefi::table::boot::*;
 use uefi::Identify;
 
 use uefi::CStr16;
+
+use uefi::data_types::PhysicalAddress;
 
 
 use alloc::vec;
@@ -44,11 +46,12 @@ use core::ops::DerefMut;
 use core::any::type_name;
 use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
+use core::arch::asm;
 
 use byteorder::{ByteOrder, LittleEndian};
 use goblin::elf::{self};
 
-use lib::{KernelArguments};
+use lib::{KernelArguments, FrameBufferInfo, ModeInfo as OtherModeInfo};
 
 struct MemmoryMap {
     buffer_size: usize,
@@ -98,44 +101,17 @@ impl MemmoryMap {
     }
 }
 
-struct EfiProtocols<'a> {
-    mSimpleFileSystem:      ScopedProtocol<'a, SimpleFileSystem>,
-//    mDevicePathFromText:      ScopedProtocol<'a, DevicePathFromText>,
-}
-
-impl<'a> EfiProtocols<'a> {
-    pub fn new(
-        image_handle:   &'a Handle,
-        boot_services:  &'a uefi::prelude::BootServices,
-    ) -> Self {
-
-        EfiProtocols {
-
-            mSimpleFileSystem: 
-                boot_services
-                    .get_image_file_system(*image_handle)
-                    .unwrap(),
-
-/*
-            mDevicePathFromText:
-                boot_services
-                    .open_protocol::<DevicePathFromText>(
-                        OpenProtocolParams {
-                            boot_services.image_handle(),
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol
-                ).unwrap(),
-*/
-        }
-    }
-}
-
 fn type_of<T>(_: T) -> String{
     let a = core::any::type_name::<T>();
     return a.to_string();
   }
+
+fn Halt() {
+    loop {
+        unsafe { asm!("hlt") }
+    }
+}
+
 
 #[entry]
 fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
@@ -198,7 +174,8 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
 
     let kernel_base_addr = 0x100000;
-    let kernel_physical_addr = 
+    let mut kernel_physical_addr: PhysicalAddress = 0;
+    let kernel_physical_addr_result = 
         system_table
             .boot_services()
             .allocate_pages(
@@ -207,9 +184,15 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
                 ),
                 MemoryType::LOADER_DATA,
                 n_of_pages as usize,
-            )
-            .unwrap();
+            );
 
+    if let Ok(s) = kernel_physical_addr_result {
+        kernel_physical_addr = s;
+    } else {
+        Halt();
+    }
+
+    
     let buf: &mut [u8] = 
         unsafe {
             from_raw_parts_mut(
@@ -232,36 +215,6 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
         .read(
             buf
         );
-
-/*
-    let graphics_output: &mut GraphicsOutput = unsafe {
-        boot_services
-            .locate_protocol::<GraphicsOutput>()
-            .unwrap()
-            .get()
-            .as_mut()
-            .unwrap()
-        };
-    
-    let mut mode_info: ModeInfo = 
-        graphics_output
-            .current_mode_info()
-            .into();
-    
-    let mut frame_buffer = 
-        graphics_output
-            .frame_buffer();
-
-    let mut frame_buffer_info = 
-        FrameBufferInfo {
-            fb:
-                frame_buffer
-                    .as_mut_ptr(),
-            size:
-                frame_buffer
-                    .size(),
-        };
-*/
     
     exit_boot_services();
 
