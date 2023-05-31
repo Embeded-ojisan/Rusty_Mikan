@@ -186,10 +186,13 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
                 n_of_pages as usize,
             );
 
-    if let Ok(s) = kernel_physical_addr_result {
-        kernel_physical_addr = s;
-    } else {
-        Halt();
+    match kernel_physical_addr_result {
+        Ok(some) => {
+            kernel_physical_addr = some;
+        },
+        Err(err) => {
+            Halt();
+        },
     }
 
     
