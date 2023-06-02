@@ -112,27 +112,11 @@ fn Halt() {
     }
 }
 
-
-#[entry]
-fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
-    uefi_services::init(&mut system_table).unwrap();
-    info!("Hello world!");
-
-    // 前処理
-    let mut memmap = MemmoryMap::new(4096*4);
-    memmap.GetMemoryMap(&(system_table.boot_services()));
-
-    let mut simple_file_system = 
-        system_table
-            .boot_services()
-            .get_image_file_system(image_handle)
-            .unwrap();
-    
-    let mut root_dir = 
-        simple_file_system
-            .open_volume()
-            .unwrap();
-
+fn SaveMemoryMap(
+    mut memmap: &mut MemmoryMap,
+    mut root_dir: &mut Directory,
+)
+{
     // メモリマップを取得
     let memmap_hadle = 
         root_dir.
@@ -146,6 +130,31 @@ fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     memmap.SaveMemoryMap(
         memmap_hadle
     );
+}
+
+#[entry]
+fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
+    uefi_services::init(&mut system_table).unwrap();
+    info!("Hello world!");
+
+    // 前処理
+    let mut simple_file_system = 
+        system_table
+            .boot_services()
+            .get_image_file_system(image_handle)
+            .unwrap();
+    
+    let mut root_dir = 
+        simple_file_system
+            .open_volume()
+            .unwrap();
+
+
+    let mut memmap = MemmoryMap::new(4096*4);
+
+    SaveMemoryMap(&mut memmap, &mut root_dir);
+
+    memmap.GetMemoryMap(&(system_table.boot_services()));
 
     // カーネルファイルを読み出し
     let kernel_file_handle = 
