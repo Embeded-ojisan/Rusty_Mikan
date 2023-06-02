@@ -112,6 +112,24 @@ fn Halt() {
     }
 }
 
+fn OpenRootDir(
+    image_handle: &mut Handle,
+    system_table: &mut SystemTable<Boot>,
+) -> Directory {
+    let mut simple_file_system = 
+        system_table
+            .boot_services()
+            .get_image_file_system(*image_handle)
+            .unwrap();
+    
+    let mut root_dir = 
+        simple_file_system
+            .open_volume()
+            .unwrap();
+
+    root_dir
+}
+
 fn SaveMemoryMap(
     mut memmap: &mut MemmoryMap,
     mut root_dir: &mut Directory,
@@ -133,22 +151,13 @@ fn SaveMemoryMap(
 }
 
 #[entry]
-fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
+fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     uefi_services::init(&mut system_table).unwrap();
     info!("Hello world!");
 
     // 前処理
-    let mut simple_file_system = 
-        system_table
-            .boot_services()
-            .get_image_file_system(image_handle)
-            .unwrap();
-    
     let mut root_dir = 
-        simple_file_system
-            .open_volume()
-            .unwrap();
-
+        OpenRootDir(&mut image_handle, &mut system_table);
 
     let mut memmap = MemmoryMap::new(4096*4);
 
