@@ -49,7 +49,8 @@ use core::slice::from_raw_parts_mut;
 use core::arch::asm;
 
 use byteorder::{ByteOrder, LittleEndian};
-use goblin::elf::{self};
+
+use goblin::elf::Elf;
 
 use lib::{KernelArguments, FrameBufferInfo, ModeInfo as OtherModeInfo};
 
@@ -133,8 +134,7 @@ fn OpenRootDir(
 fn SaveMemoryMap(
     mut memmap: &mut MemmoryMap,
     mut root_dir: &mut Directory,
-)
-{
+) {
     // メモリマップを取得
     let memmap_hadle = 
         root_dir.
@@ -150,22 +150,10 @@ fn SaveMemoryMap(
     );
 }
 
-#[entry]
-fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
-    uefi_services::init(&mut system_table).unwrap();
-    info!("Hello world!");
-
-    // 前処理
-    let mut root_dir = 
-        OpenRootDir(&mut image_handle, &mut system_table);
-
-    let mut memmap = MemmoryMap::new(4096*4);
-
-    SaveMemoryMap(&mut memmap, &mut root_dir);
-
-    memmap.GetMemoryMap(&(system_table.boot_services()));
-
-    // カーネルファイルを読み出し
+fn LoadKernel<'a>(
+    system_table: &'a mut SystemTable<Boot>,
+    mut root_dir: &'a mut Directory,
+) -> Elf<'a> {
     let kernel_file_handle = 
         root_dir.open(
             cstr16!("\\kernel.elf"),
@@ -236,6 +224,28 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
         .read(
             buf
         );
+
+    let elf: Elf = Elf::parse(buf).unwrap(); 
+    elf
+}
+
+#[entry]
+fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
+    uefi_services::init(&mut system_table).unwrap();
+    info!("Hello world!");
+
+    // 前処理
+    let mut root_dir = 
+        OpenRootDir(&mut image_handle, &mut system_table);
+
+    let mut memmap = MemmoryMap::new(4096*4);
+
+    SaveMemoryMap(&mut memmap, &mut root_dir);
+
+    memmap.GetMemoryMap(&(system_table.boot_services()));
+
+    // カーネルファイルを読み出し
+    let elf = LoadKernel(&mut system_table, &mut root_dir);
     
     exit_boot_services();
 
@@ -245,6 +255,7 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
 //            mode_info: mode_info,
         };
 
+/*
     let buf = unsafe { core::slice::from_raw_parts((kernel_physical_addr as u64 + 24) as *mut u8, 8)};
     let kernel_main_address = LittleEndian::read_u64(&buf);
     info!("{:x}", kernel_main_address);
@@ -252,11 +263,10 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
     /* なぜか0x100120とずれて0x101120となる */
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe{ transmute(kernel_main_address) };
+*/
 
-/*
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe{ transmute(0x100120 as u64) };
-*/
 
     kernel_main(&args);
 
