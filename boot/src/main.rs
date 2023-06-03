@@ -2,6 +2,7 @@
 #![no_std]
 
 #![feature(abi_efiapi)]
+#![feature(error_in_core)]
 
 extern crate alloc;
 
@@ -47,6 +48,7 @@ use core::any::type_name;
 use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
 use core::arch::asm;
+use core::error::Error;
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -101,6 +103,12 @@ impl MemmoryMap {
             Status::SUCCESS
     }
 }
+
+/**
+*   使い方
+*       info!("{}", type_of(&kernel_file_size));
+*
+*/
 
 fn type_of<T>(_: T) -> String{
     let a = core::any::type_name::<T>();
@@ -175,7 +183,50 @@ fn LoadKernel<'a>(
         file_info_handle
             .file_size();
 
-    info!("{}", type_of(&kernel_file_size));
+    let kernel_buffer = 
+        system_table
+            .boot_services()
+            .allocate_pool(
+                MemoryType::LOADER_DATA,
+                kernel_file_size as usize,
+            ).unwrap();
+
+/*
+    let kernel_buffer;
+    match kernel_buffer_result {
+        Ok(some) => {
+            kernel_buffer = some;
+        },
+        Err(err) => {
+            Halt();
+            return Err(0);
+        },
+    }
+ */
+    let kernel_buffer: &mut [u8]  = 
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                kernel_buffer,
+                kernel_file_size as usize
+            )
+        };
+
+    let kernel_file_handle = 
+        root_dir.open(
+            cstr16!("\\kernel.elf"),
+            uefi::proto::media::file::FileMode::Read,
+            FileAttribute::from_bits(0).unwrap(),
+            )
+            .unwrap();
+
+
+    kernel_file_handle
+        .into_regular_file()
+        .unwrap()
+        .read(
+            kernel_buffer
+        );
+    
 
     let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
 
