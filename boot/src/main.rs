@@ -52,7 +52,7 @@ use core::error::Error;
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use goblin::elf::Elf;
+use goblin::elf::*;
 
 use lib::{KernelArguments, FrameBufferInfo, ModeInfo as OtherModeInfo};
 
@@ -119,6 +119,23 @@ fn Halt() {
     loop {
         unsafe { asm!("hlt") }
     }
+}
+
+fn CalcLoadAddressRange<'a>(
+    elf:    &'a Elf<'_>,
+    mut first:  &'a mut usize,
+    mut last:   &'a mut usize,
+) -> (&'a mut usize, &'a mut usize) {
+    *first = usize::MAX;
+    *last = 0;
+    for ph in elf.program_headers.iter() {
+        if ph.p_type != program_header::PT_LOAD {
+            continue;
+        }
+        first = first.min(&mut (ph.p_vaddr as usize));
+        last = last.max(&mut ((ph.p_vaddr + ph.p_memsz) as usize));
+    }
+    (first, last)
 }
 
 fn OpenRootDir(
@@ -191,18 +208,6 @@ fn LoadKernel<'a>(
                 kernel_file_size as usize,
             ).unwrap();
 
-/*
-    let kernel_buffer;
-    match kernel_buffer_result {
-        Ok(some) => {
-            kernel_buffer = some;
-        },
-        Err(err) => {
-            Halt();
-            return Err(0);
-        },
-    }
- */
     let kernel_buffer: &mut [u8]  = 
         unsafe {
             core::slice::from_raw_parts_mut(
@@ -226,7 +231,17 @@ fn LoadKernel<'a>(
         .read(
             kernel_buffer
         );
-    
+
+    let elf: Elf = Elf::parse(kernel_buffer).unwrap(); 
+
+    let mut kernel_first_address=0;
+    let mut kernel_last_address=0;
+    let (kernel_first_address, kernel_last_address) =
+        CalcLoadAddressRange(
+            &elf,
+            &mut kernel_first_address,
+            &mut kernel_last_address,
+        );
 
     let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
 
