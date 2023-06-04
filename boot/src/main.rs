@@ -121,19 +121,43 @@ fn Halt() {
     }
 }
 
-fn CalcLoadAddressRange<'a>(
-    elf:    &'a Elf<'_>,
-    mut first:  &'a mut usize,
-    mut last:   &'a mut usize,
-) -> (&'a mut usize, &'a mut usize) {
-    *first = usize::MAX;
-    *last = 0;
+fn CopyLoadSegments<'a>(
+    elf:                &'a Elf<'_>,
+    kernel_buffer:      &[u8]
+) {
     for ph in elf.program_headers.iter() {
         if ph.p_type != program_header::PT_LOAD {
             continue;
         }
-        first = first.min(&mut (ph.p_vaddr as usize));
-        last = last.max(&mut ((ph.p_vaddr + ph.p_memsz) as usize));
+        let p_offset = ph.p_offset as usize;
+        let p_filesz = ph.p_filesz as usize;
+        let p_memsz = ph.p_memsz as usize;
+        let dest = 
+            unsafe { 
+                from_raw_parts_mut(
+                    ph.p_vaddr as *mut u8, p_memsz
+                )
+            };
+        dest[..p_filesz]
+            .copy_from_slice(&kernel_buffer[p_offset..p_offset + p_filesz]);
+        dest[p_filesz..]
+            .fill(0);
+    }
+}
+
+fn CalcLoadAddressRange<'a>(
+    elf:    &'a Elf<'_>,
+    mut first: usize,
+    mut last:  usize,
+) -> (usize, usize) {
+    first = usize::MAX;
+    last = 0;
+    for ph in elf.program_headers.iter() {
+        if ph.p_type != program_header::PT_LOAD {
+            continue;
+        }
+        first = first.min((ph.p_vaddr as usize));
+        last = last.max(((ph.p_vaddr + ph.p_memsz) as usize));
     }
     (first, last)
 }
@@ -239,23 +263,23 @@ fn LoadKernel<'a>(
     let (kernel_first_address, kernel_last_address) =
         CalcLoadAddressRange(
             &elf,
-            &mut kernel_first_address,
-            &mut kernel_last_address,
+            kernel_first_address,
+            kernel_last_address,
         );
 
-    let n_of_pages = (kernel_file_size + 0xfff)/0x1000;
+    let num_pages = 
+        (kernel_last_address - kernel_first_address + 0xfff)/0x1000;
 
-    let kernel_base_addr = 0x100000;
     let mut kernel_physical_addr: PhysicalAddress = 0;
     let kernel_physical_addr_result = 
         system_table
             .boot_services()
             .allocate_pages(
                 uefi::table::boot::AllocateType::Address(
-                    kernel_base_addr as u64
+                    kernel_first_address as u64
                 ),
                 MemoryType::LOADER_DATA,
-                n_of_pages as usize,
+                num_pages as usize,
             );
 
     match kernel_physical_addr_result {
@@ -266,6 +290,8 @@ fn LoadKernel<'a>(
             Halt();
         },
     }
+
+    CopyLoadSegments(&elf, kernel_buffer);
 
     
     let buf: &mut [u8] = 
