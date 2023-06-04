@@ -77,44 +77,6 @@ impl From<uefi::proto::console::gop::ModeInfo> for ModeInfo {
     }
 }
 
-// #[repr(C)]
-// #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-// pub struct MemoryMapIter<'buffer> {
-//     descriptor: &'buffer [MemoryDescriptor; MEMORY_MAP_SIZE],
-//     index: usize,
-// }
-
-// impl<'buffer> Iterator for MemoryMapIter<'buffer> {
-//     type Item = MemoryDescriptor;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.index += 1;
-
-//         if self.index >= self.descriptor.len() {
-//             None
-//         } else {
-//             Some(self.descriptor[self.index])
-//         }
-//     }
-// }
-
-// #[cfg(feature = "uefi-feature")]
-// impl<'buffer> From<uefi::table::boot::MemoryMapIter<'buffer>> for MemoryMapIter<'buffer> {
-//     fn from(value: uefi::table::boot::MemoryMapIter<'buffer>) -> Self {
-//         let mut _descriptor: &'buffer [MemoryDescriptor; MEMORY_MAP_SIZE] =
-//             &[Default::default(); MEMORY_MAP_SIZE];
-
-//         for (i, val) in value.enumerate() {
-//             _descriptor[i] = (*val).into();
-//         }
-
-//         MemoryMapIter {
-//             descriptor: &_descriptor,
-//             index: 0,
-//         }
-//     }
-// }
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MemoryMap {

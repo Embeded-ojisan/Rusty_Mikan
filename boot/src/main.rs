@@ -54,7 +54,14 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use goblin::elf::*;
 
-use lib::{KernelArguments, FrameBufferInfo, ModeInfo as OtherModeInfo};
+use lib::{
+    KernelArguments,
+    FrameBufferInfo,
+    ModeInfo as OtherModeInfo,
+    MemoryDescriptor,
+    MemoryMap,
+    MEMORY_MAP_SIZE,
+};
 
 struct MemmoryMap {
     buffer_size: usize,
@@ -100,7 +107,19 @@ impl MemmoryMap {
         &self, 
         handle: FileHandle
     ) -> Status {
-            Status::SUCCESS
+
+        // headerを用意
+
+        // headerをhandleに記録
+
+        // メモリマップの各要素を書き込み
+
+        Status::SUCCESS
+    }
+    pub fn ReturnMemmoryMapIterator(
+        &mut self,
+    ) -> &mut MemoryMapIter {
+        &mut (*self).entries()
     }
 }
 
@@ -305,15 +324,58 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
     let mut root_dir = 
         OpenRootDir(&mut image_handle, &mut system_table);
 
+    // メモリマップの保存
     let mut memmap = MemmoryMap::new(4096*4);
-
     SaveMemoryMap(&mut memmap, &mut root_dir);
-
     memmap.GetMemoryMap(&(system_table.boot_services()));
+
+    // 
+    let gop: &mut GraphicsOutput = 
+        unsafe {
+            system_table
+                .boot_services()
+                .locate_protocol::<GraphicsOutput>()
+                .unwrap()
+                .get()
+                .as_mut()
+                .unwrap()
+        };
+
+    let mut mode_info: ModeInfo 
+        = gop
+            .current_mode_info()
+            .into();
+
+    let mut frame_buffer =
+        gop
+            .frame_buffer();
+    
+    let mut frame_buffer_info =
+        FrameBufferInfo {
+            fb: 
+                frame_buffer
+                    .as_mut_ptr(),
+            
+            size:
+                frame_buffer
+                    .size(),
+        };        
+    
+    let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE]
+        = [Default::default(); MEMORY_MAP_SIZE];
+
+    for (i, value) in memory_map_iter.clone().enumerate() {
+        memory_map[i].memory_type = value.ty.into();
+        memory_map[i].physical_start = value.phys_start;
+        memory_map[i].virtual_start = value.virt_start;
+        memory_map[i].number_of_pages = value.page_count;
+        memory_map[i].attribute = value.att.bits();
+    }
+    
 
     // カーネルファイルを読み出し
     let elf = LoadKernel(&mut system_table, &mut root_dir);
-    
+
     exit_boot_services();
 
     let args =
