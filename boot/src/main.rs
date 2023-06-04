@@ -113,6 +113,7 @@ impl MemmoryMap {
         // headerをhandleに記録
 
         // メモリマップの各要素を書き込み
+        
 
         Status::SUCCESS
     }
