@@ -268,7 +268,7 @@ fn LoadKernel<'a>(
         );
 
     let num_pages = 
-        (kernel_last_address - kernel_first_address + 0xfff)/0x1000;
+        (kernel_last_address - kernel_first_address)/0x1000;
 
     let mut kernel_physical_addr: PhysicalAddress = 0;
     let kernel_physical_addr_result = 
@@ -293,7 +293,7 @@ fn LoadKernel<'a>(
 
     CopyLoadSegments(&elf, kernel_buffer);
 
-    
+/*   
     let buf: &mut [u8] = 
         unsafe {
             from_raw_parts_mut(
@@ -316,9 +316,9 @@ fn LoadKernel<'a>(
         .read(
             buf
         );
-
-    let elf: Elf = Elf::parse(buf).unwrap(); 
-    elf
+*/
+//    kernel_first_address
+        elf
 }
 
 #[entry]
@@ -348,7 +348,8 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
         };
 
 /*
-    let buf = unsafe { core::slice::from_raw_parts((kernel_physical_addr as u64 + 24) as *mut u8, 8)};
+    info!("{:x}", kernel_first_addr);
+    let buf = unsafe { core::slice::from_raw_parts((kernel_first_addr as u64 + 24) as *mut u8, 8)};
     let kernel_main_address = LittleEndian::read_u64(&buf);
     info!("{:x}", kernel_main_address);
 
@@ -357,8 +358,13 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
         unsafe{ transmute(kernel_main_address) };
 */
 
+/*
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe{ transmute(0x100120 as u64) };
+*/
+    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
+        unsafe{ transmute(elf.entry) };
+
 
     kernel_main(&args);
 
