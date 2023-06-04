@@ -293,32 +293,7 @@ fn LoadKernel<'a>(
 
     CopyLoadSegments(&elf, kernel_buffer);
 
-/*   
-    let buf: &mut [u8] = 
-        unsafe {
-            from_raw_parts_mut(
-                kernel_physical_addr as *mut u8,
-                kernel_file_size as usize
-            )
-        };
-
-    let kernel_file_handle = 
-        root_dir.open(
-            cstr16!("\\kernel.elf"),
-            uefi::proto::media::file::FileMode::Read,
-            FileAttribute::from_bits(0).unwrap(),
-        ).
-        unwrap();
-
-    kernel_file_handle
-        .into_regular_file()
-        .unwrap()
-        .read(
-            buf
-        );
-*/
-//    kernel_first_address
-        elf
+    elf
 }
 
 #[entry]
@@ -347,21 +322,6 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
 //            mode_info: mode_info,
         };
 
-/*
-    info!("{:x}", kernel_first_addr);
-    let buf = unsafe { core::slice::from_raw_parts((kernel_first_addr as u64 + 24) as *mut u8, 8)};
-    let kernel_main_address = LittleEndian::read_u64(&buf);
-    info!("{:x}", kernel_main_address);
-
-    /* なぜか0x100120とずれて0x101120となる */
-    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
-        unsafe{ transmute(kernel_main_address) };
-*/
-
-/*
-    let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
-        unsafe{ transmute(0x100120 as u64) };
-*/
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe{ transmute(elf.entry) };
 
