@@ -1,13 +1,15 @@
 #![crate_type = "lib"]
 #![no_std]
 
-pub const MEMORY_MAP_SIZE: usize = 100;
+//pub const MEMORY_MAP_SIZE: usize = 100;
+pub const MEMORY_MAP_SIZE: usize = 8000;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct KernelArguments {
-//    pub frame_buffer_info: FrameBufferInfo,
-//    pub mode_info: ModeInfo,
+    pub frame_buffer_info:      FrameBufferInfo,
+    pub mode_info:              MyModeInfo,
+    pub memory_map:             MemoryMap,
 }
 
 #[repr(C)]
@@ -37,7 +39,7 @@ pub struct PixelBitmask {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ModeInfo {
+pub struct MyModeInfo {
     pub version: u32, // must 0
     pub hor_res: u32,
     pub ver_res: u32,
@@ -47,7 +49,7 @@ pub struct ModeInfo {
 }
 
 #[cfg(feature = "uefi-feature")]
-impl From<uefi::proto::console::gop::ModeInfo> for ModeInfo {
+impl From<uefi::proto::console::gop::ModeInfo> for MyModeInfo {
     fn from(value: uefi::proto::console::gop::ModeInfo) -> Self {
         let pixel_format = match value.pixel_format() {
             uefi::proto::console::gop::PixelFormat::Bgr => PixelFormat::Bgr,
@@ -66,7 +68,7 @@ impl From<uefi::proto::console::gop::ModeInfo> for ModeInfo {
             }),
         };
 
-        ModeInfo {
+        MyModeInfo {
             version: 0,
             hor_res: value.resolution().0 as u32,
             ver_res: value.resolution().1 as u32,
@@ -76,6 +78,44 @@ impl From<uefi::proto::console::gop::ModeInfo> for ModeInfo {
         }
     }
 }
+
+// #[repr(C)]
+// #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+// pub struct MemoryMapIter<'buffer> {
+//     descriptor: &'buffer [MemoryDescriptor; MEMORY_MAP_SIZE],
+//     index: usize,
+// }
+
+// impl<'buffer> Iterator for MemoryMapIter<'buffer> {
+//     type Item = MemoryDescriptor;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.index += 1;
+
+//         if self.index >= self.descriptor.len() {
+//             None
+//         } else {
+//             Some(self.descriptor[self.index])
+//         }
+//     }
+// }
+
+// #[cfg(feature = "uefi-feature")]
+// impl<'buffer> From<uefi::table::boot::MemoryMapIter<'buffer>> for MemoryMapIter<'buffer> {
+//     fn from(value: uefi::table::boot::MemoryMapIter<'buffer>) -> Self {
+//         let mut _descriptor: &'buffer [MemoryDescriptor; MEMORY_MAP_SIZE] =
+//             &[Default::default(); MEMORY_MAP_SIZE];
+
+//         for (i, val) in value.enumerate() {
+//             _descriptor[i] = (*val).into();
+//         }
+
+//         MemoryMapIter {
+//             descriptor: &_descriptor,
+//             index: 0,
+//         }
+//     }
+// }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

@@ -3,6 +3,8 @@
 
 #![feature(abi_efiapi)]
 #![feature(error_in_core)]
+#![feature(ptr_metadata)]
+#![allow(stable_features)]
 
 extern crate alloc;
 
@@ -11,125 +13,113 @@ use uefi::prelude::*;
 use uefi::global_allocator::exit_boot_services;
 
 use uefi::proto::media::{
-    fs::SimpleFileSystem,
+//    fs::SimpleFileSystem,
     file::*
-};
-
-use uefi::proto::loaded_image::LoadedImage;
-
-use uefi::proto::device_path::{
-    text::DevicePathFromText,
-    build::DevicePathBuilder,
 };
 
 use uefi::proto::console::gop::{
     ModeInfo,
     GraphicsOutput,
+    PixelFormat,
 };
 
-use uefi::table::boot::*;
-
-use uefi::Identify;
-
-use uefi::CStr16;
+use uefi::table::boot::{
+    MemoryMapIter,
+    MemoryType,
+};
 
 use uefi::data_types::PhysicalAddress;
 
 
-use alloc::vec;
-use alloc::vec::Vec;
+//use alloc::vec;
+//use alloc::vec::Vec;
 use alloc::string::*;
-use log::info;
-use alloc::rc::Rc;
+use alloc::format;
+//use alloc::rc::Rc;
 
-use core::option::Option;
-use core::ops::DerefMut;
-use core::any::type_name;
+//use core::option::Option;
+//use core::ops::DerefMut;
+//use core::any::type_name;
 use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
 use core::arch::asm;
-use core::error::Error;
-
-use byteorder::{ByteOrder, LittleEndian};
+//use core::error::Error;
+use core::fmt::*;
 
 use goblin::elf::*;
+
+use log::info;
 
 use lib::{
     KernelArguments,
     FrameBufferInfo,
-    ModeInfo as OtherModeInfo,
+    MyModeInfo,
     MemoryDescriptor,
     MemoryMap,
     MEMORY_MAP_SIZE,
 };
 
-struct MyMemmoryMap {
-    buffer_size:            usize,
-    buffer:                 Option<Vec<u8>>,
-    map_size:               usize,
-    map_key:                usize,
-    descriptor_size:        usize,
-    descriptor_version:     usize,
-    memmap:                 MemmoryMap,
+fn GetMemoryMap<'a>(
+    boot_services:      &'a BootServices,
+    memmap_buffer:      &'a mut [u8]
+) -> MemoryMapIter<'a> {
+    let (_, memory_map_iter) = 
+        boot_services
+            .memory_map(memmap_buffer)
+            .unwrap();
+
+    memory_map_iter
 }
 
-impl MyMemmoryMap {
-    pub fn new(
-        inBuffer_size: usize,
-    ) 
-    -> Self {
-        let buffer = vec![0u8; inBuffer_size];
-        MyMemmoryMap {
-            buffer_size:            inBuffer_size,
-            buffer:                 Some(buffer),
-            map_size:               0,
-            map_key:                0,
-            descriptor_size:        0,
-            descriptor_version:     0,
-            memmap:                 0,
-        }
-    }
-
-    pub fn GetMemoryMap(
-        &mut self,
-        boot_services: &BootServices,
-    ) -> Status {
-        match self.buffer.as_mut() {
-            Some(buf) => {
-                self.memmap =
-                    boot_services
-                        .memory_map(
-                            buf.as_mut_slice()
-                        );
-                Status::SUCCESS
-            },
-            None => Status::BUFFER_TOO_SMALL,
-        }
-    }
-    pub fn SaveMemoryMap(
-        &self, 
-        handle:     FileHandle,
-        MemmapDesc: &mut MemoryDescriptor,
-    ) -> Status {
-
-        // headerを用意
-
-        // headerをhandleに記録
-
-        // メモリマップの各要素を書き込み
-        
-        for (i, value) in self.memmap.entrirs().clone().enumerate() {
-            MemmapDesc[i].memory_type = value.ty.into();
-            MemmapDesc[i].physical_start = value.phys_start;
-            MemmapDesc[i].virtual_start = value.virt_start;
-            MemmapDesc[i].number_of_pages = value.page_count;
-            MemmapDesc[i].attribute = value.att.bits();
-        }
-    
-
-        Status::SUCCESS
+fn PrintMemoryMap(
+    memmap_iter: &MemoryMapIter
+) {
+    for (i, d) in memmap_iter.clone().enumerate() {
+        let line = format!(
+            "{}, {:x}, {:?}, {:08x}, {:x}, {:x}",
+            i,
+            d.ty.0,
+            d.ty,
+            d.phys_start,
+            d.page_count,
+            d.att.bits() & 0xfffff
+        );
     }
 }
+
+fn SaveMemoryMap<'a>(
+    mut memmap_iter: &MemoryMapIter<'a>,
+    mut root_dir: &mut Directory,
+) {
+    let mut memmap_file = root_dir
+        .open(
+            cstr16!("\\memorymap"),
+            uefi::proto::media::file::FileMode::CreateReadWrite,
+            FileAttribute::from_bits(0).unwrap(),
+        )
+        .unwrap()
+        .into_regular_file()
+        .unwrap();
+
+        memmap_file
+        .write("MemoryMap \n".as_bytes())
+        .unwrap();
+
+    for (i, d) in memmap_iter.clone().enumerate() {
+        let line = format!(
+            "{}, {:x}, {:?}, {:08x}, {:x}, {:x}\n",
+            i,
+            d.ty.0,
+            d.ty,
+            d.phys_start,
+            d.page_count,
+            d.att.bits() & 0xfffff
+        );
+        memmap_file.write(line.as_bytes()).unwrap();
+    }
+    memmap_file.flush().unwrap();
+}
+
 
 /**
 *   使い方
@@ -166,7 +156,9 @@ fn CopyLoadSegments<'a>(
                 )
             };
         dest[..p_filesz]
-            .copy_from_slice(&kernel_buffer[p_offset..p_offset + p_filesz]);
+            .copy_from_slice(
+                &kernel_buffer[p_offset..p_offset + p_filesz]
+            );
         dest[p_filesz..]
             .fill(0);
     }
@@ -183,8 +175,16 @@ fn CalcLoadAddressRange<'a>(
         if ph.p_type != program_header::PT_LOAD {
             continue;
         }
-        first = first.min((ph.p_vaddr as usize));
-        last = last.max(((ph.p_vaddr + ph.p_memsz) as usize));
+        first = 
+            first
+                .min(
+                    ph.p_vaddr as usize
+                );
+        last = 
+            last
+                .max(
+                    (ph.p_vaddr + ph.p_memsz) as usize
+                );
     }
     (first, last)
 }
@@ -207,29 +207,8 @@ fn OpenRootDir(
     root_dir
 }
 
-fn SaveMemoryMap(
-    mut memmap: &mut MyMemmoryMap,
-    mut root_dir: &mut Directory,
-    mut MemmapDesc: &mut MemoryDescriptor,
-) {
-    // メモリマップを取得
-    let memmap_hadle = 
-        root_dir.
-            open(
-                cstr16!("\\memmap"),
-                FileMode::CreateReadWrite,
-                FileAttribute::empty(),
-            )
-            .unwrap();
-
-    memmap.SaveMemoryMap(
-        memmap_hadle,
-        MemmapDesc,
-    );
-}
-
 fn LoadKernel<'a>(
-    system_table: &'a mut SystemTable<Boot>,
+    system_table: &'a SystemTable<Boot>,
     mut root_dir: &'a mut Directory,
 ) -> Elf<'a> {
     let kernel_file_handle = 
@@ -326,24 +305,51 @@ fn LoadKernel<'a>(
 }
 
 #[entry]
-fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
+fn main(
+    mut image_handle: Handle,
+    mut system_table: SystemTable<Boot>
+) -> Status {
     uefi_services::init(&mut system_table).unwrap();
-    info!("Hello world!");
 
     // 前処理
+    info!("OpenRootDir!");
     let mut root_dir = 
-        OpenRootDir(&mut image_handle, &mut system_table);
+        OpenRootDir(
+            &mut image_handle,
+            &mut system_table
+        );
 
     // メモリマップの保存
-    let mut memmap = MyMemmoryMap::new(4096*4);
-    let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE]
-        = [Default::default(); MEMORY_MAP_SIZE];    
-    SaveMemoryMap(
-        &mut memmap,
-        &mut root_dir,
-        &mut memory_map[0]
+    let memmap_size = 
+        system_table
+            .boot_services()
+            .memory_map_size();
+    
+    info!("{}", memmap_size.map_size);
+    let mut memmap_buffer = [0 as u8; 8000];
+
+    info!("GetMemoryMap!");
+    let memory_map_iter =
+        GetMemoryMap(
+            system_table.boot_services(),
+            &mut memmap_buffer
+        );
+
+/*
+    PrintMemoryMap(
+        &memory_map_iter,
     );
-    memmap.GetMemoryMap(&(system_table.boot_services()));
+*/
+
+    info!("SaveMemoryMap!");
+    SaveMemoryMap(
+        &memory_map_iter,
+        &mut root_dir,
+    );
+
+    // カーネルファイルを読み出し
+    let elf = LoadKernel(&system_table, &mut root_dir);
+    
 
     // 
     let gop: &mut GraphicsOutput = 
@@ -357,7 +363,7 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
                 .unwrap()
         };
 
-    let mut mode_info: ModeInfo 
+    let mut mode_info: MyModeInfo 
         = gop
             .current_mode_info()
             .into();
@@ -375,26 +381,39 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
             size:
                 frame_buffer
                     .size(),
-        };        
-    
-    // カーネルファイルを読み出し
-    let elf = LoadKernel(&mut system_table, &mut root_dir);
+        };
 
     exit_boot_services();
 
+    let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE] =
+        [Default::default(); MEMORY_MAP_SIZE];
+
+    for (i, value) in memory_map_iter.clone().enumerate() {
+        memory_map[i].memory_type       = value.ty.into();
+        memory_map[i].physical_start    = value.phys_start;
+        memory_map[i].virtual_start     = value.virt_start;
+        memory_map[i].number_of_pages   = value.page_count;
+        memory_map[i].attribute         = value.att.bits();
+    }
+
     let args =
         KernelArguments {
-//            frame_buffer_info: frame_buffer_info,
-//            mode_info: mode_info,
+            frame_buffer_info: frame_buffer_info,
+            mode_info: mode_info,
+            memory_map: MemoryMap {
+                map: memory_map,
+                len: memory_map_iter.len(),
+            },
         };
 
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe{ transmute(elf.entry) };
 
+    info!("kernel_main!");
 
     kernel_main(&args);
 
-    info!("Bad!!!!!!!!!!");
+    info!("bad!");
 
     Status::SUCCESS
 }

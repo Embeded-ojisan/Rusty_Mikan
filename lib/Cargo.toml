@@ -11,3 +11,4 @@ uefi-services = {version = "0.16.0", optional = true}
 
 [features]
 default = []
+uefi-feature = ["uefi", "uefi-services"]
