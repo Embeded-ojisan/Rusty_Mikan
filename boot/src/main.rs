@@ -63,28 +63,30 @@ use lib::{
     MEMORY_MAP_SIZE,
 };
 
-struct MemmoryMap {
-    buffer_size: usize,
-    buffer: Option<Vec<u8>>,
-    map_size: usize,
-    map_key: usize,
-    descriptor_size: usize,
-    descriptor_version: usize,
+struct MyMemmoryMap {
+    buffer_size:            usize,
+    buffer:                 Option<Vec<u8>>,
+    map_size:               usize,
+    map_key:                usize,
+    descriptor_size:        usize,
+    descriptor_version:     usize,
+    memmap:                 MemmoryMap,
 }
 
-impl MemmoryMap {
+impl MyMemmoryMap {
     pub fn new(
         inBuffer_size: usize,
     ) 
     -> Self {
         let buffer = vec![0u8; inBuffer_size];
-        MemmoryMap {
+        MyMemmoryMap {
             buffer_size:            inBuffer_size,
             buffer:                 Some(buffer),
             map_size:               0,
             map_key:                0,
             descriptor_size:        0,
             descriptor_version:     0,
+            memmap:                 0,
         }
     }
 
@@ -94,10 +96,11 @@ impl MemmoryMap {
     ) -> Status {
         match self.buffer.as_mut() {
             Some(buf) => {
-                boot_services
-                    .memory_map(
-                        buf.as_mut_slice()
-                    );
+                self.memmap =
+                    boot_services
+                        .memory_map(
+                            buf.as_mut_slice()
+                        );
                 Status::SUCCESS
             },
             None => Status::BUFFER_TOO_SMALL,
@@ -105,7 +108,8 @@ impl MemmoryMap {
     }
     pub fn SaveMemoryMap(
         &self, 
-        handle: FileHandle
+        handle:     FileHandle,
+        MemmapDesc: &mut MemoryDescriptor,
     ) -> Status {
 
         // headerを用意
@@ -114,13 +118,16 @@ impl MemmoryMap {
 
         // メモリマップの各要素を書き込み
         
+        for (i, value) in self.memmap.entrirs().clone().enumerate() {
+            MemmapDesc[i].memory_type = value.ty.into();
+            MemmapDesc[i].physical_start = value.phys_start;
+            MemmapDesc[i].virtual_start = value.virt_start;
+            MemmapDesc[i].number_of_pages = value.page_count;
+            MemmapDesc[i].attribute = value.att.bits();
+        }
+    
 
         Status::SUCCESS
-    }
-    pub fn ReturnMemmoryMapIterator(
-        &mut self,
-    ) -> &mut MemoryMapIter {
-        &mut (*self).entries()
     }
 }
 
@@ -201,8 +208,9 @@ fn OpenRootDir(
 }
 
 fn SaveMemoryMap(
-    mut memmap: &mut MemmoryMap,
+    mut memmap: &mut MyMemmoryMap,
     mut root_dir: &mut Directory,
+    mut MemmapDesc: &mut MemoryDescriptor,
 ) {
     // メモリマップを取得
     let memmap_hadle = 
@@ -215,7 +223,8 @@ fn SaveMemoryMap(
             .unwrap();
 
     memmap.SaveMemoryMap(
-        memmap_hadle
+        memmap_hadle,
+        MemmapDesc,
     );
 }
 
@@ -326,8 +335,14 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
         OpenRootDir(&mut image_handle, &mut system_table);
 
     // メモリマップの保存
-    let mut memmap = MemmoryMap::new(4096*4);
-    SaveMemoryMap(&mut memmap, &mut root_dir);
+    let mut memmap = MyMemmoryMap::new(4096*4);
+    let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE]
+        = [Default::default(); MEMORY_MAP_SIZE];    
+    SaveMemoryMap(
+        &mut memmap,
+        &mut root_dir,
+        &mut memory_map[0]
+    );
     memmap.GetMemoryMap(&(system_table.boot_services()));
 
     // 
@@ -362,18 +377,6 @@ fn main(mut image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
                     .size(),
         };        
     
-    let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE]
-        = [Default::default(); MEMORY_MAP_SIZE];
-
-    for (i, value) in memory_map_iter.clone().enumerate() {
-        memory_map[i].memory_type = value.ty.into();
-        memory_map[i].physical_start = value.phys_start;
-        memory_map[i].virtual_start = value.virt_start;
-        memory_map[i].number_of_pages = value.page_count;
-        memory_map[i].attribute = value.att.bits();
-    }
-    
-
     // カーネルファイルを読み出し
     let elf = LoadKernel(&mut system_table, &mut root_dir);
 
