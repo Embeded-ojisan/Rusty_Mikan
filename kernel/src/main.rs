@@ -10,8 +10,22 @@ use log::info;
 pub extern "efiapi" fn kernel_main(
     args: &KernelArguments
 ) {
-    info!("kernel");
-
+    unsafe {
+        let buffer = core::slice::from_raw_parts_mut(
+            (args.frame_buffer_info).fb,
+            (args.frame_buffer_info).size,
+        );
+        let mut i = 0;
+        loop {
+//                info!("frame_buffer_info size is {}", i);
+            if i > (args.frame_buffer_info).size {
+                break;
+            }
+            buffer[i] = (i%256) as u8;
+            i = i+1;
+        }
+    }
+    
     loop {
         unsafe { asm!("hlt") }
     }

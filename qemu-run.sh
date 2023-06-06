@@ -16,7 +16,7 @@ cp target/x86_64-unknown-none-rusty_mikan/debug/kernel.elf esp/kernel.elf
 
 sudo chmod 777 /dev/kvm
 
-qemu-system-x86_64 -enable-kvm  -monitor stdio                                     \
+qemu-system-x86_64 -enable-kvm  -monitor stdio -display sdl \
     -drive if=pflash,format=raw,readonly=on,file=esp/bios/OVMF_CODE.fd  \
     -drive if=pflash,format=raw,readonly=on,file=esp/bios/OVMF_VARS.fd  \
     -drive format=raw,file=fat:rw:esp
