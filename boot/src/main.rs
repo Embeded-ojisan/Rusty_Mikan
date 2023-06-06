@@ -388,6 +388,7 @@ fn main(
     let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE] =
         [Default::default(); MEMORY_MAP_SIZE];
 
+/*
     for (i, value) in memory_map_iter.clone().enumerate() {
         memory_map[i].memory_type       = value.ty.into();
         memory_map[i].physical_start    = value.phys_start;
@@ -395,21 +396,25 @@ fn main(
         memory_map[i].number_of_pages   = value.page_count;
         memory_map[i].attribute         = value.att.bits();
     }
+*/
 
     let args =
         KernelArguments {
             frame_buffer_info: frame_buffer_info,
             mode_info: mode_info,
+/*
             memory_map: MemoryMap {
                 map: memory_map,
                 len: memory_map_iter.len(),
             },
+*/
         };
 
     let kernel_main: extern "efiapi" fn(args: &KernelArguments) = 
         unsafe{ transmute(elf.entry) };
 
-    info!("kernel_main!");
+    info!("Kernel_main address is {}", elf.entry);
+    info!("Jump To Kernel_main!");
 
     kernel_main(&args);
 

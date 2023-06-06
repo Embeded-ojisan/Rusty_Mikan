@@ -9,7 +9,7 @@ pub const MEMORY_MAP_SIZE: usize = 8000;
 pub struct KernelArguments {
     pub frame_buffer_info:      FrameBufferInfo,
     pub mode_info:              MyModeInfo,
-    pub memory_map:             MemoryMap,
+//    pub memory_map:             MemoryMap,
 }
 
 #[repr(C)]

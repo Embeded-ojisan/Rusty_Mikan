@@ -16,7 +16,14 @@ cp target/x86_64-unknown-none-rusty_mikan/debug/kernel.elf esp/kernel.elf
 
 sudo chmod 777 /dev/kvm
 
-qemu-system-x86_64 -gdb tcp::12345 -S -enable-kvm                                      \
+# 以下を起動後、相手側は以下を実行
+# https://blog.masu-mi.me/post/2020/12/10/observe-linux-over-qemu-with-gdb/
+# ./espに入り、gdb
+## target remote localhost:12345
+## file kernel.elf
+## b kernel_main
+## continue
+qemu-system-x86_64 -gdb tcp::12345 -S -enable-kvm                       \
     -drive if=pflash,format=raw,readonly=on,file=esp/bios/OVMF_CODE.fd  \
     -drive if=pflash,format=raw,readonly=on,file=esp/bios/OVMF_VARS.fd  \
     -drive format=raw,file=fat:rw:esp
