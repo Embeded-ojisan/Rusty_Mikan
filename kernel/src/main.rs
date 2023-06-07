@@ -3,8 +3,24 @@
 //#![feature(asm)]
 
 use core::arch::asm;
-use lib::KernelArguments;
+use lib::{
+    KernelArguments,
+    PixelFormat,
+};
 use log::info;
+
+pub struct FrameBufferConfig {
+    frame_buffer:               ,
+    pixels_per_scan_line:       ,
+    horizontal_resolution:      ,
+    vertical_resolution:        ,
+    pixel_format:               PixelFormat,
+}
+
+pub struct PixelWriter {
+    config_: & FrameBufferConfig,
+}
+
 
 #[no_mangle]
 pub extern "efiapi" fn kernel_main(

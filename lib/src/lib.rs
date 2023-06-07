@@ -52,19 +52,23 @@ pub struct MyModeInfo {
 impl From<uefi::proto::console::gop::ModeInfo> for MyModeInfo {
     fn from(value: uefi::proto::console::gop::ModeInfo) -> Self {
         let pixel_format = match value.pixel_format() {
-            uefi::proto::console::gop::PixelFormat::Bgr => PixelFormat::Bgr,
-            uefi::proto::console::gop::PixelFormat::Bitmask => PixelFormat::Bitmask,
-            uefi::proto::console::gop::PixelFormat::BltOnly => PixelFormat::BltOnly,
-            uefi::proto::console::gop::PixelFormat::Rgb => PixelFormat::Rgb,
+            uefi::proto::console::gop::PixelFormat::Bgr
+                => PixelFormat::Bgr,
+            uefi::proto::console::gop::PixelFormat::Bitmask
+                => PixelFormat::Bitmask,
+            uefi::proto::console::gop::PixelFormat::BltOnly
+                => PixelFormat::BltOnly,
+            uefi::proto::console::gop::PixelFormat::Rgb
+                => PixelFormat::Rgb,
         };
 
         let pixel_bit_mask = match value.pixel_bitmask() {
             None => None,
             _ => Some(PixelBitmask {
-                red: value.pixel_bitmask().unwrap().red,
-                green: value.pixel_bitmask().unwrap().green,
-                blue: value.pixel_bitmask().unwrap().blue,
-                reserved: value.pixel_bitmask().unwrap().reserved,
+                red:            value.pixel_bitmask().unwrap().red,
+                green:          value.pixel_bitmask().unwrap().green,
+                blue:           value.pixel_bitmask().unwrap().blue,
+                reserved:       value.pixel_bitmask().unwrap().reserved,
             }),
         };
 
