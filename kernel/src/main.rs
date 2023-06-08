@@ -10,7 +10,7 @@ use lib::{
 use log::info;
 
 pub struct FrameBufferConfig {
-    frame_buffer:               ,
+    frame_buffer:               *mut u8,
     pixels_per_scan_line:       ,
     horizontal_resolution:      ,
     vertical_resolution:        ,
