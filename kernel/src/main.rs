@@ -9,18 +9,49 @@ use lib::{
 };
 use log::info;
 
+pub struct PixcelColor {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
 pub struct FrameBufferConfig {
     frame_buffer:               *mut u8,
-    pixels_per_scan_line:       ,
-    horizontal_resolution:      ,
-    vertical_resolution:        ,
+    pixels_per_scan_line:       u32,
+    horizontal_resolution:      u32,
+    vertical_resolution:        u32,
     pixel_format:               PixelFormat,
 }
 
-pub struct PixelWriter {
-    config_: & FrameBufferConfig,
+impl FrameBufferConfig {
+    fn new(buf: *mut u8, size: u32) -> Self {
+        FrameBufferConfig {
+            frame_buffer:           buf,
+            pixels_per_scan_line:   0,
+            horizontal_resolution:  0,
+            vertical_resolution:    0,
+            pixel_format:           PixelFormat::Rgb,
+        }        
+    }
 }
 
+pub struct PixelWriter {
+    config_: FrameBufferConfig,
+}
+
+impl PixelWriter {
+    pub fn new(buf: *mut u8, size: u32) -> Self {
+        Self {
+            config_: FrameBufferConfig::new(buf, size)
+        }
+    }
+
+    pub fn write(
+        x: usize,
+        y: usize,
+        c: &PixcelColor,
+    )
+}
 
 #[no_mangle]
 pub extern "efiapi" fn kernel_main(
