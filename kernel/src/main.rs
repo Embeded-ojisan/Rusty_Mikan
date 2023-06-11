@@ -17,9 +17,9 @@ pub struct PixcelColor {
 
 pub struct FrameBufferConfig {
     frame_buffer:               *mut u8,
-    pixels_per_scan_line:       u32,
-    horizontal_resolution:      u32,
-    vertical_resolution:        u32,
+    pixels_per_scan_line:       usize,
+    horizontal_resolution:      usize,
+    vertical_resolution:        usize,
     pixel_format:               PixelFormat,
 }
 
@@ -45,12 +45,42 @@ impl PixelWriter {
             config_: FrameBufferConfig::new(buf, size)
         }
     }
+}
 
-    pub fn write(
-        x: usize,
-        y: usize,
-        c: &PixcelColor,
-    )
+pub fn PixelAt(
+    config:    &FrameBufferConfig,
+    x:      usize,
+    y:      usize,
+) -> *mut u8 {
+    (
+        (config.frame_buffer as usize)
+        + 4*(config.pixels_per_scan_line*y +x)
+    ) as *mut u8
+}
+
+pub fn write(
+    config:    &FrameBufferConfig,
+    x:      usize,
+    y:      usize,
+    c:      &PixcelColor,
+) {
+    let mut p = PixelAt(
+        config,
+        x,
+        y
+    );
+
+    let mut p = 
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                p,
+                3 as usize
+            )
+        };
+
+    p[0] = c.b;
+    p[1] = c.g;
+    p[2] = c.r;
 }
 
 #[no_mangle]
