@@ -9,6 +9,26 @@ use lib::{
 };
 use log::info;
 
+trait PixelWriter {
+    fn write(
+        config:    &FrameBufferConfig,
+        x:      usize,
+        y:      usize,
+        c:      &PixcelColor,
+    );
+
+    fn PixelAt(
+        config:    &FrameBufferConfig,
+        x:      usize,
+        y:      usize,
+    ) -> *mut u8 {
+        (
+            (config.frame_buffer as usize)
+            + 4*(config.pixels_per_scan_line*y +x)
+        ) as *mut u8
+    }
+}
+
 pub struct PixcelColor {
     r: u8,
     g: u8,
@@ -35,11 +55,11 @@ impl FrameBufferConfig {
     }
 }
 
-pub struct PixelWriter {
+struct BGRResv8BitPerColorPixelWriter {
     config_: FrameBufferConfig,
 }
 
-impl PixelWriter {
+impl BGRResv8BitPerColorPixelWriter {
     pub fn new(buf: *mut u8, size: u32) -> Self {
         Self {
             config_: FrameBufferConfig::new(buf, size)
@@ -47,40 +67,70 @@ impl PixelWriter {
     }
 }
 
-pub fn PixelAt(
-    config:    &FrameBufferConfig,
-    x:      usize,
-    y:      usize,
-) -> *mut u8 {
-    (
-        (config.frame_buffer as usize)
-        + 4*(config.pixels_per_scan_line*y +x)
-    ) as *mut u8
+impl PixelWriter for BGRResv8BitPerColorPixelWriter {
+    fn write(
+        config:    &FrameBufferConfig,
+        x:      usize,
+        y:      usize,
+        c:      &PixcelColor,
+    ) {
+        let mut p = Self::PixelAt(
+            config,
+            x,
+            y
+        );
+    
+        let mut p = 
+            unsafe {
+                core::slice::from_raw_parts_mut(
+                    p,
+                    3 as usize
+                )
+            };
+    
+        p[0] = c.b;
+        p[1] = c.g;
+        p[2] = c.r;
+    }
 }
 
-pub fn write(
-    config:    &FrameBufferConfig,
-    x:      usize,
-    y:      usize,
-    c:      &PixcelColor,
-) {
-    let mut p = PixelAt(
-        config,
-        x,
-        y
-    );
+struct RGBResv8BitPerColorPixelWriter {
+    config_: FrameBufferConfig,
+}
 
-    let mut p = 
-        unsafe {
-            core::slice::from_raw_parts_mut(
-                p,
-                3 as usize
-            )
-        };
+impl RGBResv8BitPerColorPixelWriter {
+    pub fn new(buf: *mut u8, size: u32) -> Self {
+        Self {
+            config_: FrameBufferConfig::new(buf, size)
+        }
+    }
+}
 
-    p[0] = c.b;
-    p[1] = c.g;
-    p[2] = c.r;
+impl PixelWriter for RGBResv8BitPerColorPixelWriter {
+    fn write(
+        config:    &FrameBufferConfig,
+        x:      usize,
+        y:      usize,
+        c:      &PixcelColor,
+    ) {
+        let mut p = Self::PixelAt(
+            config,
+            x,
+            y
+        );
+    
+        let mut p = 
+            unsafe {
+                core::slice::from_raw_parts_mut(
+                    p,
+                    3 as usize
+                )
+            };
+    
+        p[0] = c.r;
+        p[1] = c.g;
+        p[2] = c.b;
+    }
 }
 
 #[no_mangle]
