@@ -137,7 +137,17 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
 pub extern "efiapi" fn kernel_main(
     args: &KernelArguments
 ) {
-    args.modeInfo
+    match args.mode_info {
+        Rgb => {
+            ;
+        },
+        Bgr => {
+            ;
+        },
+        _=> {
+            ;
+        },
+    }
     
     loop {
         unsafe { asm!("hlt") }
