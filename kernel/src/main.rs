@@ -11,19 +11,19 @@ use log::info;
 
 trait PixelWriter {
     fn write(
-        config:    &FrameBufferConfig,
-        x:      usize,
-        y:      usize,
-        c:      &PixcelColor,
+        config:     &FrameBufferConfig,
+        x:          u32,
+        y:          u32,
+        c:          &PixcelColor,
     );
 
     fn PixelAt(
-        config:    &FrameBufferConfig,
-        x:      usize,
-        y:      usize,
+        config:     &FrameBufferConfig,
+        x:          u32,
+        y:          u32,
     ) -> *mut u8 {
         (
-            (config.frame_buffer as usize)
+            config.frame_buffer as u32
             + 4*(config.pixels_per_scan_line*y +x)
         ) as *mut u8
     }
@@ -37,19 +37,25 @@ pub struct PixcelColor {
 
 pub struct FrameBufferConfig {
     frame_buffer:               *mut u8,
-    pixels_per_scan_line:       usize,
-    horizontal_resolution:      usize,
-    vertical_resolution:        usize,
+    pixels_per_scan_line:       u32,
+    horizontal_resolution:      u32,
+    vertical_resolution:        u32,
     pixel_format:               PixelFormat,
 }
 
 impl FrameBufferConfig {
-    fn new(buf: *mut u8, size: u32) -> Self {
+    fn new(
+        buf:        *mut u8,
+        size:       u32,
+        hor_res:    u32,
+        ver_res:    u32,
+
+    ) -> Self {
         FrameBufferConfig {
             frame_buffer:           buf,
             pixels_per_scan_line:   0,
-            horizontal_resolution:  0,
-            vertical_resolution:    0,
+            horizontal_resolution:  hor_res,
+            vertical_resolution:    ver_res,
             pixel_format:           PixelFormat::Rgb,
         }        
     }
@@ -60,19 +66,29 @@ struct BGRResv8BitPerColorPixelWriter {
 }
 
 impl BGRResv8BitPerColorPixelWriter {
-    pub fn new(buf: *mut u8, size: u32) -> Self {
+    pub fn new(
+        buf:        *mut u8,
+        size:       u32,
+        hor_res:    u32,
+        ver_res:    u32,
+    ) -> Self {
         Self {
-            config_: FrameBufferConfig::new(buf, size)
+            config_: FrameBufferConfig::new(
+                buf,
+                size,
+                hor_res,
+                ver_res
+            )
         }
     }
 }
 
 impl PixelWriter for BGRResv8BitPerColorPixelWriter {
     fn write(
-        config:    &FrameBufferConfig,
-        x:      usize,
-        y:      usize,
-        c:      &PixcelColor,
+        config:     &FrameBufferConfig,
+        x:          u32,
+        y:          u32,
+        c:          &PixcelColor,
     ) {
         let mut p = Self::PixelAt(
             config,
@@ -84,7 +100,7 @@ impl PixelWriter for BGRResv8BitPerColorPixelWriter {
             unsafe {
                 core::slice::from_raw_parts_mut(
                     p,
-                    3 as usize
+                    3
                 )
             };
     
@@ -99,19 +115,29 @@ struct RGBResv8BitPerColorPixelWriter {
 }
 
 impl RGBResv8BitPerColorPixelWriter {
-    pub fn new(buf: *mut u8, size: u32) -> Self {
+    pub fn new(
+        buf:        *mut u8,
+        size:       u32,
+        hor_res:    u32,
+        ver_res:    u32,
+    ) -> Self {
         Self {
-            config_: FrameBufferConfig::new(buf, size)
+            config_: FrameBufferConfig::new(
+                buf,
+                size,
+                hor_res,
+                ver_res,
+            )
         }
     }
 }
 
 impl PixelWriter for RGBResv8BitPerColorPixelWriter {
     fn write(
-        config:    &FrameBufferConfig,
-        x:      usize,
-        y:      usize,
-        c:      &PixcelColor,
+        config:     &FrameBufferConfig,
+        x:          u32,
+        y:          u32,
+        c:          &PixcelColor,
     ) {
         let mut p = Self::PixelAt(
             config,
@@ -123,7 +149,7 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
             unsafe {
                 core::slice::from_raw_parts_mut(
                     p,
-                    3 as usize
+                    3
                 )
             };
     
@@ -143,14 +169,18 @@ pub extern "efiapi" fn kernel_main(
             let pixel_write = 
                 RGBResv8BitPerColorPixelWriter::new(
                     args.frame_buffer_info.fb,
-                    args.frame_buffer_info.size as u32
+                    args.frame_buffer_info.size as u32,
+                    args.mode_info.hor_res,
+                    args.mode_info.ver_res,
                 );
         },
         Bgr => {
             let pixel_write = 
                 BGRResv8BitPerColorPixelWriter::new(
                     args.frame_buffer_info.fb,
-                    args.frame_buffer_info.size as u32
+                    args.frame_buffer_info.size as u32,
+                    args.mode_info.hor_res,
+                    args.mode_info.ver_res,
                 );
             },
         _=> {
