@@ -137,13 +137,22 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
 pub extern "efiapi" fn kernel_main(
     args: &KernelArguments
 ) {
+    
     match args.mode_info {
         Rgb => {
-            ;
+            let pixel_write = 
+                RGBResv8BitPerColorPixelWriter::new(
+                    args.frame_buffer_info.fb,
+                    args.frame_buffer_info.size as u32
+                );
         },
         Bgr => {
-            ;
-        },
+            let pixel_write = 
+                BGRResv8BitPerColorPixelWriter::new(
+                    args.frame_buffer_info.fb,
+                    args.frame_buffer_info.size as u32
+                );
+            },
         _=> {
             ;
         },
