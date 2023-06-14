@@ -11,7 +11,7 @@ use log::info;
 
 trait PixelWriter {
     fn write(
-        config:     &FrameBufferConfig,
+        &self,
         x:          u32,
         y:          u32,
         c:          &PixcelColor,
@@ -85,13 +85,13 @@ impl BGRResv8BitPerColorPixelWriter {
 
 impl PixelWriter for BGRResv8BitPerColorPixelWriter {
     fn write(
-        config:     &FrameBufferConfig,
+        &self,
         x:          u32,
         y:          u32,
         c:          &PixcelColor,
     ) {
         let mut p = Self::PixelAt(
-            config,
+            &self.config_,
             x,
             y
         );
@@ -134,13 +134,13 @@ impl RGBResv8BitPerColorPixelWriter {
 
 impl PixelWriter for RGBResv8BitPerColorPixelWriter {
     fn write(
-        config:     &FrameBufferConfig,
+        &self,
         x:          u32,
         y:          u32,
         c:          &PixcelColor,
     ) {
         let mut p = Self::PixelAt(
-            config,
+            &self.config_,
             x,
             y
         );
@@ -166,23 +166,55 @@ pub extern "efiapi" fn kernel_main(
     
     match args.mode_info {
         Rgb => {
-            let pixel_write = 
+            let mut pixel_writer_rgb = 
                 RGBResv8BitPerColorPixelWriter::new(
                     args.frame_buffer_info.fb,
                     args.frame_buffer_info.size as u32,
                     args.mode_info.hor_res,
                     args.mode_info.ver_res,
                 );
+
+            let hor_res = args.mode_info.hor_res;
+            let ver_res = args.mode_info.ver_res;
+            let pixcelColor = {
+                PixcelColor {
+                    r:  255,
+                    g:  255,
+                    b:  255
+                }
+            };
+            
+            for x in 0..hor_res {
+                for y in 0..ver_res {
+                    pixel_writer_rgb.write(x, y, &pixcelColor);
+                }
+            }
         },
         Bgr => {
-            let pixel_write = 
+            let mut pixel_writer_bgr = 
                 BGRResv8BitPerColorPixelWriter::new(
                     args.frame_buffer_info.fb,
                     args.frame_buffer_info.size as u32,
                     args.mode_info.hor_res,
                     args.mode_info.ver_res,
                 );
-            },
+
+            let hor_res = args.mode_info.hor_res;
+            let ver_res = args.mode_info.ver_res;
+            let pixcelColor = {
+                PixcelColor {
+                    r:  255,
+                    g:  255,
+                    b:  255
+                }
+            };
+                
+            for x in 0..hor_res {
+                for y in 0..ver_res {
+                    pixel_writer_bgr.write(x, y, &pixcelColor);
+                }
+            }
+        },
         _=> {
             ;
         },
