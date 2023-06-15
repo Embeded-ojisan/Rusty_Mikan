@@ -49,11 +49,12 @@ impl FrameBufferConfig {
         size:       u32,
         hor_res:    u32,
         ver_res:    u32,
+        ppsl:       u32,
 
     ) -> Self {
         FrameBufferConfig {
             frame_buffer:           buf,
-            pixels_per_scan_line:   0,
+            pixels_per_scan_line:   ppsl,
             horizontal_resolution:  hor_res,
             vertical_resolution:    ver_res,
             pixel_format:           PixelFormat::Rgb,
@@ -71,13 +72,15 @@ impl BGRResv8BitPerColorPixelWriter {
         size:       u32,
         hor_res:    u32,
         ver_res:    u32,
+        ppsl:       u32,
     ) -> Self {
         Self {
             config_: FrameBufferConfig::new(
                 buf,
                 size,
                 hor_res,
-                ver_res
+                ver_res,
+                ppsl
             )
         }
     }
@@ -120,6 +123,7 @@ impl RGBResv8BitPerColorPixelWriter {
         size:       u32,
         hor_res:    u32,
         ver_res:    u32,
+        ppsl:       u32,
     ) -> Self {
         Self {
             config_: FrameBufferConfig::new(
@@ -127,6 +131,7 @@ impl RGBResv8BitPerColorPixelWriter {
                 size,
                 hor_res,
                 ver_res,
+                ppsl,
             )
         }
     }
@@ -172,6 +177,7 @@ pub extern "efiapi" fn kernel_main(
                     args.frame_buffer_info.size as u32,
                     args.mode_info.hor_res,
                     args.mode_info.ver_res,
+                    args.mode_info.stride,
                 );
 
             let hor_res = args.mode_info.hor_res;
@@ -189,6 +195,20 @@ pub extern "efiapi" fn kernel_main(
                     pixel_writer_rgb.write(x, y, &pixcelColor);
                 }
             }
+
+            let pixcelColor = {
+                PixcelColor {
+                    r:  0,
+                    g:  255,
+                    b:  0
+                }
+            };
+            
+            for x in 0..200 {
+                for y in 0..100 {
+                    pixel_writer_rgb.write(x, y, &pixcelColor);
+                }
+            }
         },
         Bgr => {
             let mut pixel_writer_bgr = 
@@ -197,6 +217,7 @@ pub extern "efiapi" fn kernel_main(
                     args.frame_buffer_info.size as u32,
                     args.mode_info.hor_res,
                     args.mode_info.ver_res,
+                    args.mode_info.stride,
                 );
 
             let hor_res = args.mode_info.hor_res;
@@ -211,6 +232,20 @@ pub extern "efiapi" fn kernel_main(
                 
             for x in 0..hor_res {
                 for y in 0..ver_res {
+                    pixel_writer_bgr.write(x, y, &pixcelColor);
+                }
+            }
+
+            let pixcelColor = {
+                PixcelColor {
+                    r:  0,
+                    g:  255,
+                    b:  0
+                }
+            };
+            
+            for x in 0..200 {
+                for y in 0..100 {
                     pixel_writer_bgr.write(x, y, &pixcelColor);
                 }
             }
