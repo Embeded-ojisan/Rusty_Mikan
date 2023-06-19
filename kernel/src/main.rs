@@ -2,6 +2,8 @@
 #![no_main]
 //#![feature(asm)]
 
+mod graphics;
+
 use core::arch::asm;
 use lib::{
     KernelArguments,

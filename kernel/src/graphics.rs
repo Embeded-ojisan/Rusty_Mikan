@@ -1,7 +1,11 @@
 #![no_std]
 #![no_main]
 
-trait PixelWriter {
+use lib::{
+    PixelFormat,
+};
+
+pub trait PixelWriter {
     fn write(
         &self,
         x:          u32,
@@ -54,7 +58,7 @@ impl FrameBufferConfig {
     }
 }
 
-struct BGRResv8BitPerColorPixelWriter {
+pub struct BGRResv8BitPerColorPixelWriter {
     config_: FrameBufferConfig,
 }
 
@@ -105,7 +109,7 @@ impl PixelWriter for BGRResv8BitPerColorPixelWriter {
     }
 }
 
-struct RGBResv8BitPerColorPixelWriter {
+pub struct RGBResv8BitPerColorPixelWriter {
     config_: FrameBufferConfig,
 }
 
