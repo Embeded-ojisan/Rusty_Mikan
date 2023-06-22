@@ -10,7 +10,7 @@ pub trait PixelWriter {
         &self,
         x:          u32,
         y:          u32,
-        c:          &PixcelColor,
+        c:          &PixelColor,
     );
 
     fn PixelAt(
@@ -25,7 +25,7 @@ pub trait PixelWriter {
     }
 }
 
-pub struct PixcelColor {
+pub struct PixelColor {
     pub r: u8,
     pub g: u8,
     pub b: u8,
@@ -87,7 +87,7 @@ impl PixelWriter for BGRResv8BitPerColorPixelWriter {
         &self,
         x:          u32,
         y:          u32,
-        c:          &PixcelColor,
+        c:          &PixelColor,
     ) {
         let mut p = Self::PixelAt(
             &self.config_,
@@ -138,7 +138,7 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
         &self,
         x:          u32,
         y:          u32,
-        c:          &PixcelColor,
+        c:          &PixelColor,
     ) {
         let mut p = Self::PixelAt(
             &self.config_,

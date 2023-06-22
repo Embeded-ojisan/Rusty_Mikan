@@ -33,8 +33,8 @@ pub extern "efiapi" fn kernel_main(
 
             let hor_res = args.mode_info.hor_res;
             let ver_res = args.mode_info.ver_res;
-            let pixcelColor = {
-                PixcelColor {
+            let PixelColor = {
+                PixelColor {
                     r:  255,
                     g:  255,
                     b:  255
@@ -43,12 +43,12 @@ pub extern "efiapi" fn kernel_main(
             
             for x in 0..hor_res {
                 for y in 0..ver_res {
-                    pixel_writer_rgb.write(x, y, &pixcelColor);
+                    pixel_writer_rgb.write(x, y, &PixelColor);
                 }
             }
 
-            let pixcelColor = {
-                PixcelColor {
+            let PixelColor = {
+                PixelColor {
                     r:  0,
                     g:  255,
                     b:  0
@@ -57,7 +57,7 @@ pub extern "efiapi" fn kernel_main(
             
             for x in 0..200 {
                 for y in 0..100 {
-                    pixel_writer_rgb.write(x, y, &pixcelColor);
+                    pixel_writer_rgb.write(x, y, &PixelColor);
                 }
             }
         },
@@ -73,8 +73,8 @@ pub extern "efiapi" fn kernel_main(
 
             let hor_res = args.mode_info.hor_res;
             let ver_res = args.mode_info.ver_res;
-            let pixcelColor = {
-                PixcelColor {
+            let PixelColor = {
+                PixelColor {
                     r:  255,
                     g:  255,
                     b:  255
@@ -83,12 +83,12 @@ pub extern "efiapi" fn kernel_main(
                 
             for x in 0..hor_res {
                 for y in 0..ver_res {
-                    pixel_writer_bgr.write(x, y, &pixcelColor);
+                    pixel_writer_bgr.write(x, y, &PixelColor);
                 }
             }
 
-            let pixcelColor = {
-                PixcelColor {
+            let PixelColor = {
+                PixelColor {
                     r:  0,
                     g:  255,
                     b:  0
@@ -97,7 +97,7 @@ pub extern "efiapi" fn kernel_main(
             
             for x in 0..200 {
                 for y in 0..100 {
-                    pixel_writer_bgr.write(x, y, &pixcelColor);
+                    pixel_writer_bgr.write(x, y, &PixelColor);
                 }
             }
         },
