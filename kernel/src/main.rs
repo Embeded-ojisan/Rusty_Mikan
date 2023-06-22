@@ -3,6 +3,7 @@
 //#![feature(asm)]
 
 mod graphics;
+mod font;
 
 use core::arch::asm;
 use lib::{
@@ -12,6 +13,7 @@ use lib::{
 use log::info;
 
 use graphics::*;
+use font::*;
 
 #[no_mangle]
 pub extern "efiapi" fn kernel_main(
