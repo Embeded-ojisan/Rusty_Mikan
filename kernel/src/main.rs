@@ -60,6 +60,13 @@ pub extern "efiapi" fn kernel_main(
                     pixel_writer_rgb.write(x, y, &PixelColor);
                 }
             }
+
+            let mut i = 0;
+            for c in '\x00'..'\x7f' {
+                i = i + 1;
+                let writer = Font::new(c);
+                writer.write(8 * i, 50, &pixel_writer_rgb);
+            }
         },
         Bgr => {
             let mut pixel_writer_bgr = 
@@ -99,6 +106,13 @@ pub extern "efiapi" fn kernel_main(
                 for y in 0..100 {
                     pixel_writer_bgr.write(x, y, &PixelColor);
                 }
+            }
+            
+            let mut i = 0;
+            for c in '\x00'..'\x7f' {
+                i = i + 1;
+                let writer = Font::new(c);
+                writer.write(8 * i, 50, &pixel_writer_bgr);
             }
         },
         _=> {

@@ -16,15 +16,15 @@ impl Font {
     pub const HEIGHT: usize = 16;
     pub const WIDTH: usize = 8;
 
-    pub fn is_black_bit(&self, x: usize, y: usize) -> bool {
+    pub fn is_draw_bit(&self, x: usize, y: usize) -> bool {
         //範囲エラーを避けたいのでget
         ((self.glyph.get(y).unwrap_or(&0) << x) & 0b1000_0000) == 0b1000_0000
     }
 
-    pub fn write(&self, x: usize, y: usize, writer: impl PixelWriter) {
+    pub fn write(&self, x: usize, y: usize, writer: &impl PixelWriter) {
         for dy in 0..Font::HEIGHT {
             for dx in 0..Font::WIDTH {
-                if self.is_black_bit(dx, dy) {
+                if self.is_draw_bit(dx, dy) {
                     let black = PixelColor { r: 0, g: 0, b: 0 };
                     writer.write(
                         (x + dx).try_into().unwrap(),
@@ -36,7 +36,7 @@ impl Font {
         }
     }
 
-    pub fn clear(x: usize, y: usize, writer: impl PixelWriter) {
+    pub fn clear(x: usize, y: usize, writer: &impl PixelWriter) {
         for dy in 0..Font::HEIGHT {
             for dx in 0..Font::WIDTH {
                 let bg_color = 
