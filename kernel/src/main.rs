@@ -4,6 +4,7 @@
 
 mod graphics;
 mod font;
+mod console;
 
 use core::arch::asm;
 use lib::{
@@ -14,6 +15,7 @@ use log::info;
 
 use graphics::*;
 use font::*;
+use console::*;
 
 #[no_mangle]
 pub extern "efiapi" fn kernel_main(
@@ -61,12 +63,8 @@ pub extern "efiapi" fn kernel_main(
                 }
             }
 
-            let mut i = 0;
-            for c in '\x00'..'\x7f' {
-                i = i + 1;
-                let writer = Font::new(c);
-                writer.write(8 * i, 50, &pixel_writer_rgb);
-            }
+            let mut console_writer = ConsoleWriter::new(pixel_writer_rgb);
+            write!(console_writer, "Welcome to MikanOS\n").unwrap();        
         },
         Bgr => {
             let mut pixel_writer_bgr = 

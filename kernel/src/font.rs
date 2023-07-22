@@ -1,7 +1,7 @@
 #![no_main]
 #![no_std]
 
-use crate::{
+use crate::graphics::{
     PixelColor,
     PixelWriter
 };
