@@ -7,6 +7,8 @@ mod font;
 mod console;
 
 use core::arch::asm;
+use core::fmt::Write;
+
 use lib::{
     KernelArguments,
     PixelFormat,
@@ -57,14 +59,14 @@ pub extern "efiapi" fn kernel_main(
                 }
             };
             
-            for x in 0..200 {
-                for y in 0..100 {
+            for x in 0..1000 {
+                for y in 0..1000 {
                     pixel_writer_rgb.write(x, y, &PixelColor);
                 }
             }
 
             let mut console_writer = ConsoleWriter::new(&pixel_writer_rgb);
-            write!(console_writer, "Welcome to MikanOS\n").unwrap();        
+            write!(&mut console_writer, "Welcome to MikanOS\n").unwrap();        
         },
         Bgr => {
             let mut pixel_writer_bgr = 
@@ -101,13 +103,13 @@ pub extern "efiapi" fn kernel_main(
             };
             
             for x in 0..200 {
-                for y in 0..100 {
+                for y in 0..200 {
                     pixel_writer_bgr.write(x, y, &PixelColor);
                 }
             }
             
             let mut console_writer = ConsoleWriter::new(&pixel_writer_bgr);
-            write!(console_writer, "Welcome to MikanOS\n").unwrap();        
+            write!(&mut console_writer, "Welcome to MikanOS\n").unwrap();        
         },
         _=> {
             ;

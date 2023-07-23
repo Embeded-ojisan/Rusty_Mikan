@@ -371,7 +371,7 @@ fn main(
     let mut frame_buffer =
         gop
             .frame_buffer();
-    
+
     let mut frame_buffer_info =
         FrameBufferInfo {
             fb: 
@@ -383,6 +383,9 @@ fn main(
                     .size(),
         };
 
+    info!("{}", mode_info.hor_res);
+    info!("{}", mode_info.ver_res);
+    
     exit_boot_services();
 
     let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE] =
