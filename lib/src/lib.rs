@@ -158,39 +158,39 @@ pub enum MemoryType {
     #[default]
     RESERVED = 0,
     /// The code portions of a loaded UEFI application.
-    LOADER_CODE = 1,
+    LoaderCode = 1,
     /// The data portions of a loaded UEFI applications,
     /// as well as any memory allocated by it.
-    LOADER_DATA = 2,
+    LoaderData = 2,
     /// Code of the boot drivers.
     ///
     /// Can be reused after OS is loaded.
-    BOOT_SERVICES_CODE = 3,
+    BootServicesCode = 3,
     /// Memory used to store boot drivers' data.
     ///
     /// Can be reused after OS is loaded.
-    BOOT_SERVICES_DATA = 4,
+    BootServicesData = 4,
     /// Runtime drivers' code.
-    RUNTIME_SERVICES_CODE = 5,
+    RuntimeServicesCode = 5,
     /// Runtime services' code.
-    RUNTIME_SERVICES_DATA = 6,
+    RuntimeServicesData = 6,
     /// Free usable memory.
-    CONVENTIONAL = 7,
+    Conventional = 7,
     /// Memory in which errors have been detected.
-    UNUSABLE = 8,
+    Unstable = 8,
     /// Memory that holds ACPI tables.
     /// Can be reclaimed after they are parsed.
-    ACPI_RECLAIM = 9,
+    AcpiReclaim = 9,
     /// Firmware-reserved addresses.
-    ACPI_NON_VOLATILE = 10,
+    AcpiNonVolatile = 10,
     /// A region used for memory-mapped I/O.
-    MMIO = 11,
+    Mmio = 11,
     /// Address space used for memory-mapped port I/O.
-    MMIO_PORT_SPACE = 12,
+    MmioPortSpace = 12,
     /// Address space which is part of the processor.
-    PAL_CODE = 13,
+    PalCode = 13,
     /// Memory region which is usable and is also non-volatile.
-    PERSISTENT_MEMORY = 14,
+    PersistentMemory = 14,
 }
 
 #[cfg(feature = "uefi-feature")]

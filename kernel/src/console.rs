@@ -1,10 +1,5 @@
-#![no_main]
-#![no_std]
-#![feature(const_generics, generic_const_exprs)]
-
 use crate::font::Font;
 use crate::graphics::{
-    PixelColor,
     PixelWriter
 };
 

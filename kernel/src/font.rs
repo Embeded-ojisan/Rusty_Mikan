@@ -1,5 +1,3 @@
-#![no_main]
-#![no_std]
 
 use crate::graphics::{
     PixelColor,

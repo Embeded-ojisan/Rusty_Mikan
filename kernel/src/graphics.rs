@@ -1,5 +1,3 @@
-#![no_std]
-#![no_main]
 
 use lib::{
     PixelFormat,
@@ -84,13 +82,13 @@ impl PixelWriter for BGRResv8BitPerColorPixelWriter {
         y:          u32,
         c:          &PixelColor,
     ) {
-        let mut p = Self::PixelAt(
+        let p = Self::PixelAt(
             &self,
             x,
             y
         );
     
-        let mut p = 
+        let p = 
             unsafe {
                 core::slice::from_raw_parts_mut(
                     p,
@@ -146,13 +144,13 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
         y:          u32,
         c:          &PixelColor,
     ) {
-        let mut p = Self::PixelAt(
+        let p = Self::PixelAt(
             &self,
             x,
             y
         );
     
-        let mut p = 
+        let p = 
             unsafe {
                 core::slice::from_raw_parts_mut(
                     p,

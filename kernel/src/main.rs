@@ -11,12 +11,9 @@ use core::fmt::Write;
 
 use lib::{
     KernelArguments,
-    PixelFormat,
 };
-use log::info;
 
 use graphics::*;
-use font::*;
 use console::*;
 
 #[no_mangle]
@@ -26,7 +23,7 @@ pub extern "efiapi" fn kernel_main(
     
     match args.mode_info {
         Rgb => {
-            let mut pixel_writer_rgb = 
+            let pixel_writer_rgb = 
                 RGBResv8BitPerColorPixelWriter::new(
                     args.frame_buffer_info.fb,
                     args.frame_buffer_info.size as u32,
@@ -37,7 +34,7 @@ pub extern "efiapi" fn kernel_main(
 
             let hor_res = args.mode_info.hor_res;
             let ver_res = args.mode_info.ver_res;
-            let PixelColor = {
+            let pixel_color = {
                 PixelColor {
                     r:  255,
                     g:  255,
@@ -47,11 +44,11 @@ pub extern "efiapi" fn kernel_main(
             
             for x in 0..hor_res {
                 for y in 0..ver_res {
-                    pixel_writer_rgb.write(x, y, &PixelColor);
+                    pixel_writer_rgb.write(x, y, &pixel_color);
                 }
             }
 
-            let PixelColor = {
+            let pixel_color = {
                 PixelColor {
                     r:  0,
                     g:  255,
@@ -61,7 +58,7 @@ pub extern "efiapi" fn kernel_main(
             
             for x in 0..1000 {
                 for y in 0..1000 {
-                    pixel_writer_rgb.write(x, y, &PixelColor);
+                    pixel_writer_rgb.write(x, y, &pixel_color);
                 }
             }
 
@@ -69,7 +66,7 @@ pub extern "efiapi" fn kernel_main(
             write!(&mut console_writer, "Welcome to MikanOS\n").unwrap();        
         },
         Bgr => {
-            let mut pixel_writer_bgr = 
+            let pixel_writer_bgr = 
                 BGRResv8BitPerColorPixelWriter::new(
                     args.frame_buffer_info.fb,
                     args.frame_buffer_info.size as u32,
@@ -80,7 +77,7 @@ pub extern "efiapi" fn kernel_main(
 
             let hor_res = args.mode_info.hor_res;
             let ver_res = args.mode_info.ver_res;
-            let PixelColor = {
+            let pixel_color = {
                 PixelColor {
                     r:  255,
                     g:  255,
@@ -90,11 +87,11 @@ pub extern "efiapi" fn kernel_main(
                 
             for x in 0..hor_res {
                 for y in 0..ver_res {
-                    pixel_writer_bgr.write(x, y, &PixelColor);
+                    pixel_writer_bgr.write(x, y, &pixel_color);
                 }
             }
 
-            let PixelColor = {
+            let pixel_color = {
                 PixelColor {
                     r:  0,
                     g:  255,
@@ -104,7 +101,7 @@ pub extern "efiapi" fn kernel_main(
             
             for x in 0..200 {
                 for y in 0..200 {
-                    pixel_writer_bgr.write(x, y, &PixelColor);
+                    pixel_writer_bgr.write(x, y, &pixel_color);
                 }
             }
             
@@ -112,7 +109,6 @@ pub extern "efiapi" fn kernel_main(
             write!(&mut console_writer, "Welcome to MikanOS\n").unwrap();        
         },
         _=> {
-            ;
         },
     }
     
