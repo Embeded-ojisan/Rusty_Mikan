@@ -5,6 +5,7 @@
 mod graphics;
 mod font;
 mod console;
+mod devices;
 
 use core::arch::asm;
 use core::fmt::Write;
