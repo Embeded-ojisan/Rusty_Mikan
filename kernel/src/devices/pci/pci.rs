@@ -1,4 +1,14 @@
-core::arch::global_asm!(include_str!("./pci.asm"));
+#![feature(global_asm, asm)]
+
+#[cfg(target_arch = "x86_64")]
+#[link_section = ".text.boot"]
+core::arch::global_asm!(r#"
+    IoOut32:
+        mov dx, di
+        mov eax, esi
+        out dx, eax
+        ret
+"#);
 
 pub struct Pci {
     devices: [Device; Pci::MAX_DEVICE_NUM],
@@ -26,6 +36,20 @@ impl Pci {
                 Pci::MAX_DEVICE_NUM
             ],
             num_devices: Pci::MAX_DEVICE_NUM,
+        }
+    }
+
+    pub fn writeAddress(
+        address: u32
+    ) {
+        let kConfigAddress = Pci::K_CONFIG_ADDRESS;
+        unsafe {
+            core::arch::asm!("
+                IoOut32(
+                    kConfigAddress,
+                    address
+                );
+            ");
         }
     }
 }
