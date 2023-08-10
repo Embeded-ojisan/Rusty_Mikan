@@ -49,6 +49,21 @@ impl Pci {
         }
     }
 
+    pub fn MakeAddress(
+        bus: u8,
+        device: u8,
+        function: u8,
+        reg_addr: u8
+    ) -> u32 {
+        let shl = |x, bits| (x as u32) << bits;
+
+        shl(1, 31)
+        | shl(bus, 16)
+        | shl(device, 11)
+        | shl(function, 8)
+        | ((reg_addr as u32) & 0xfc)
+    }
+
     pub fn writeAddress(
         address: u32
     ) {
@@ -88,6 +103,26 @@ impl Pci {
             );
             ret
         }        
+    }
+
+    pub fn ReadVendorId(
+        bus: u8,
+        device: u8,
+        function: u8
+    ) -> u16 {
+        Self::writeAddress(Self::MakeAddress(bus, device, function, 0x0));
+        let ret = (Self::ReadData() & 0xffff) as u16;
+        ret
+    }
+
+    pub fn ReadDeviceId(
+        bus: u8,
+        device: u8,
+        function: u8
+    ) -> u16 {
+        Self::writeAddress(Self::MakeAddress(bus, device, function, 0x0));
+        let ret = (Self::ReadData() >> 16) as u16;
+        ret
     }
 }
 
