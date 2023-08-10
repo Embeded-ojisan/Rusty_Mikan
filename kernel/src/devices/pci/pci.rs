@@ -10,6 +10,16 @@ core::arch::global_asm!(r#"
         ret
 "#);
 
+#[cfg(target_arch = "x86_64")]
+#[link_section = ".text.boot"]
+core::arch::global_asm!(r#"
+    IoIn32:
+        mov dx, di
+        in eax, dx
+        ret
+"#);
+
+
 pub struct Pci {
     devices: [Device; Pci::MAX_DEVICE_NUM],
     num_devices: usize,
@@ -44,13 +54,40 @@ impl Pci {
     ) {
         let kConfigAddress = Pci::K_CONFIG_ADDRESS;
         unsafe {
-            core::arch::asm!("
-                IoOut32(
+            core::arch::asm!(
+                "IoOut32(
                     kConfigAddress,
                     address
-                );
-            ");
+                );"
+            );
         }
+    }
+
+    pub fn writeData(
+        value: u32
+    ) {
+        let kConfigData = Pci::K_CONFIG_DATA;
+        unsafe {
+            core::arch::asm!(
+                "IoOut32(
+                    kConfigData,
+                    value
+                );"
+            );
+        }
+    }
+
+    pub fn ReadData()-> u32 {
+        let kConfigData = Pci::K_CONFIG_DATA;
+        unsafe {
+            let mut ret = 0;
+            core::arch::asm!(
+                "ret = IoIn32(
+                    kConfigData
+                );"
+            );
+            ret
+        }        
     }
 }
 
