@@ -19,6 +19,10 @@ core::arch::global_asm!(r#"
         ret
 "#);
 
+#[derive(Debug)]
+pub enum PciError {
+    Error,
+}
 
 pub struct Pci {
     devices: [Device; Pci::MAX_DEVICE_NUM],
@@ -123,6 +127,46 @@ impl Pci {
         Self::writeAddress(Self::MakeAddress(bus, device, function, 0x0));
         let ret = (Self::ReadData() >> 16) as u16;
         ret
+    }
+
+    pub fn ReadHeaderType(
+        bus: u8,
+        device: u8,
+        function: u8
+    ) -> u16 {
+        Self::writeAddress(Self::MakeAddress(bus, device, function, 0x0c));
+        let ret = (Self::ReadData() >> 16) as u16;
+        ret
+    }
+
+    pub fn ReadClassCode(
+        bus: u8,
+        device: u8,
+        function: u8
+    ) -> u16 {
+        Self::writeAddress(Self::MakeAddress(bus, device, function, 0x08));
+        let ret = (Self::ReadData()) as u16;
+        ret
+    }
+
+    pub fn ReadBusNumber(
+        bus: u8,
+        device: u8,
+        function: u8
+    ) -> u16 {
+        Self::writeAddress(Self::MakeAddress(bus, device, function, 0x18));
+        let ret = (Self::ReadData()) as u16;
+        ret
+    }
+
+    pub fn IsSingleFunctionDevice(
+        header_type: u8
+    ) -> bool {
+        (header_type & 0x80) == 0
+    }
+
+    pub fn ScanAllBus() -> Result<(), PciError> {
+        Ok(())
     }
 }
 
