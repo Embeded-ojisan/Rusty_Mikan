@@ -19,7 +19,7 @@ core::arch::global_asm!(r#"
         ret
 "#);
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum PciError {
     NullError,
     InitializeValue,
@@ -93,7 +93,39 @@ impl Pci {
             Err(e) => return Err(e),
         };
 
-        Ok(())
+        let header_type = self.ReadHeaderType(
+            bus,
+            device,
+            0
+        );
+        if self.IsSingleFunctionDevice(header_type) {
+            return Ok(());
+        }
+
+        for function in 1..8 {
+            let vendor_id = self.ReadVendorId(
+                bus,
+                device,
+                function
+            );
+
+            if vendor_id == 0xffff {
+                continue;
+            }
+
+            let mut err = self.ScanFunction(
+                bus,
+                device,
+                function
+            );
+
+            err = match err {
+                Ok(()) => err,
+                Err(e) => return err,
+            }
+        }
+
+        return Ok(())
     }
 
     pub fn ScanBus(&self, bus: u8) -> Result<(), PciError> {
@@ -160,24 +192,23 @@ impl Pci {
         Error
     }
 
-/*
-    pub fn ScanAllBus() -> Result<(), PciError> {
+    pub fn ScanAllBus(&self) -> Result<(), PciError> {
         let mut num_device = 0;
-        let header_type = Self::ReadHeaderType();
+        let header_type = self.ReadHeaderType(0,0,0);
 
-        if Self::IsSingleFunctionDevice(header_type) {
-            return Self::ScanBus(0);
+        if self.IsSingleFunctionDevice(header_type) {
+            return self.ScanBus(0);
         }
 
-        for i in 1..8 {
-            if Self::ReadDeviceId(0, 0, function) == 0xffff {
+        for function in 1..8 {
+            if self.ReadDeviceId(0, 0, function) == 0xffff {
                 continue;
             }
             
         }
         Ok(())
     }
-*/
+
     pub fn MakeAddress(
         self,
         bus: u8,
@@ -293,6 +324,7 @@ impl Pci {
     }
 
     pub fn IsSingleFunctionDevice(
+        self,
         header_type: u8
     ) -> bool {
         (header_type & 0x80) == 0
