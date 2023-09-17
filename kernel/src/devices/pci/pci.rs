@@ -1,7 +1,4 @@
-#![feature(global_asm, asm)]
-
 #[cfg(target_arch = "x86_64")]
-#[link_section = ".text.boot"]
 core::arch::global_asm!(r#"
     IoOut32:
         mov dx, di
@@ -11,7 +8,6 @@ core::arch::global_asm!(r#"
 "#);
 
 #[cfg(target_arch = "x86_64")]
-#[link_section = ".text.boot"]
 core::arch::global_asm!(r#"
     IoIn32:
         mov dx, di
@@ -55,7 +51,7 @@ impl Pci {
         }
     }
     
-    pub fn AddDevice(
+    pub fn add_device(
         mut self,
         bus: u8,
         device: u8,
@@ -77,33 +73,33 @@ impl Pci {
         Ok(())
     }
 
-    pub fn ScanDevice(
+    pub fn scan_device(
         self,
         bus: u8,
         device: u8,
     ) -> Result<(), PciError> {
-        let mut result = self.ScanFunction(
+        let result = self.scan_function(
             bus,
             device,
             0
         );
 
-        result = match result {
+        let _ = match result {
             Ok(()) => result,
             Err(e) => return Err(e),
         };
 
-        let header_type = self.ReadHeaderType(
+        let header_type = self.read_header_type(
             bus,
             device,
             0
         );
-        if self.IsSingleFunctionDevice(header_type) {
+        if self.is_single_function_device(header_type) {
             return Ok(());
         }
 
         for function in 1..8 {
-            let vendor_id = self.ReadVendorId(
+            let vendor_id = self.read_vendor_id(
                 bus,
                 device,
                 function
@@ -113,31 +109,31 @@ impl Pci {
                 continue;
             }
 
-            let mut err = self.ScanFunction(
+            let err = self.scan_function(
                 bus,
                 device,
                 function
             );
 
-            err = match err {
+            let _ = match err {
                 Ok(()) => err,
-                Err(e) => return err,
-            }
+                Err(_e) => return err,
+            };
         }
 
         return Ok(())
     }
 
-    pub fn ScanBus(&self, bus: u8) -> Result<(), PciError> {
+    pub fn scan_bus(&self, bus: u8) -> Result<(), PciError> {
         for device in 0..32 {
-            let vendor_id = self.ReadVendorId(bus, device, 0);
+            let vendor_id = self.read_vendor_id(bus, device, 0);
             if vendor_id == 0xffff {
                 continue;
             }
-            let mut result = self.ScanDevice(bus, device);
+            let result = self.scan_device(bus, device);
 
-            result = match result {
-                Ok(()) => Ok(()),
+            match result {
+                Ok(()) => continue,
                 Err(e) => {
                     return Err(e)
                 },
@@ -148,27 +144,27 @@ impl Pci {
     }
 
     #[allow(arithmetic_overflow)]
-    pub fn ScanFunction(
+    pub fn scan_function(
         self,
         bus: u8,
         device: u8,
         function: u8,
     ) -> Result<(), PciError> {
-        let header_type = self.ReadHeaderType(
+        let header_type = self.read_header_type(
             bus,
             device,
             function
         );
-        let Error = self.AddDevice(
+        let error = self.add_device(
             bus,
             device,
             function,
             header_type as u8
         );
 
-        match Error {
+        match error {
             Ok(()) => {
-                let class_code = self.ReadClassCode(
+                let class_code = self.read_class_code(
                     bus,
                     device,
                     function
@@ -177,31 +173,30 @@ impl Pci {
                 let sub = (class_code >> 16) & 0xff;
 
                 if (base == 0x06) && (sub == 0x04) {
-                    let bus_numbers = self.ReadBusNumber(
+                    let bus_numbers = self.read_bus_number(
                         bus,
                         device,
                         function
                     );
 
                     let secondly_bus = ((bus_numbers >> 8) & 0xff) as u8;
-                    return self.ScanBus(secondly_bus);
+                    return self.scan_bus(secondly_bus);
                 }
             },
             Err(e) => return Err(e),
         };
-        Error
+        error
     }
 
-    pub fn ScanAllBus(&self) -> Result<(), PciError> {
-        let mut num_device = 0;
-        let header_type = self.ReadHeaderType(0,0,0);
+    pub fn scan_all_bus(&self) -> Result<(), PciError> {
+        let header_type = self.read_header_type(0,0,0);
 
-        if self.IsSingleFunctionDevice(header_type) {
-            return self.ScanBus(0);
+        if self.is_single_function_device(header_type) {
+            return self.scan_bus(0);
         }
 
         for function in 1..8 {
-            if self.ReadDeviceId(0, 0, function) == 0xffff {
+            if self.read_device_id(0, 0, function) == 0xffff {
                 continue;
             }
             
@@ -209,7 +204,7 @@ impl Pci {
         Ok(())
     }
 
-    pub fn MakeAddress(
+    pub fn make_address(
         self,
         bus: u8,
         device: u8,
@@ -225,105 +220,105 @@ impl Pci {
         | ((reg_addr as u32) & 0xfc)
     }
 
-    pub fn writeAddress(
+    pub fn write_address(
         self,
-        address: u32
+        _address: u32
     ) {
-        let kConfigAddress = Pci::K_CONFIG_ADDRESS;
+        let _k_config_address = Pci::K_CONFIG_ADDRESS;
         unsafe {
             core::arch::asm!(
                 "IoOut32(
-                    kConfigAddress,
-                    address
+                    _k_config_address,
+                    _address
                 );"
             );
         }
     }
 
-    pub fn writeData(
+    pub fn write_data(
         self,
-        value: u32
+        _value: u32
     ) {
-        let kConfigData = Pci::K_CONFIG_DATA;
+        let _k_config_data = Pci::K_CONFIG_DATA;
         unsafe {
             core::arch::asm!(
                 "IoOut32(
-                    kConfigData,
-                    value
+                    _k_config_data,
+                    _value
                 );"
             );
         }
     }
 
-    pub fn ReadData(self)-> u32 {
-        let kConfigData = Pci::K_CONFIG_DATA;
+    pub fn read_data(self)-> u32 {
+        let _k_config_data = Pci::K_CONFIG_DATA;
         unsafe {
-            let mut ret = 0;
+            let ret = 0;
             core::arch::asm!(
                 "ret = IoIn32(
-                    kConfigData
+                    _k_config_data
                 );"
             );
             ret
         }        
     }
 
-    pub fn ReadVendorId(
+    pub fn read_vendor_id(
         self,
         bus: u8,
         device: u8,
         function: u8
     ) -> u16 {
-        self.writeAddress(self.MakeAddress(bus, device, function, 0x0));
-        let ret = (self.ReadData() & 0xffff) as u16;
+        self.write_address(self.make_address(bus, device, function, 0x0));
+        let ret = (self.read_data() & 0xffff) as u16;
         ret
     }
 
-    pub fn ReadDeviceId(
+    pub fn read_device_id(
         self,
         bus: u8,
         device: u8,
         function: u8
     ) -> u16 {
-        self.writeAddress(self.MakeAddress(bus, device, function, 0x0));
-        let ret = (self.ReadData() >> 16) as u16;
+        self.write_address(self.make_address(bus, device, function, 0x0));
+        let ret = (self.read_data() >> 16) as u16;
         ret
     }
 
-    pub fn ReadHeaderType(
+    pub fn read_header_type(
         self,
         bus: u8,
         device: u8,
         function: u8
     ) -> u8 {
-        self.writeAddress(self.MakeAddress(bus, device, function, 0x0c));
-        let ret = self.ReadData() >> 16;
+        self.write_address(self.make_address(bus, device, function, 0x0c));
+        let ret = self.read_data() >> 16;
         ret as u8
     }
 
-    pub fn ReadClassCode(
+    pub fn read_class_code(
         self,
         bus: u8,
         device: u8,
         function: u8
     ) -> u16 {
-        self.writeAddress(self.MakeAddress(bus, device, function, 0x08));
-        let ret = (self.ReadData()) as u16;
+        self.write_address(self.make_address(bus, device, function, 0x08));
+        let ret = (self.read_data()) as u16;
         ret
     }
 
-    pub fn ReadBusNumber(
+    pub fn read_bus_number(
         self,
         bus: u8,
         device: u8,
         function: u8
     ) -> u8 {
-        self.writeAddress(self.MakeAddress(bus, device, function, 0x18));
-        let ret = self.ReadData();
+        self.write_address(self.make_address(bus, device, function, 0x18));
+        let ret = self.read_data();
         ret as u8
     }
 
-    pub fn IsSingleFunctionDevice(
+    pub fn is_single_function_device(
         self,
         header_type: u8
     ) -> bool {

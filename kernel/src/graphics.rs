@@ -11,7 +11,7 @@ pub trait PixelWriter {
         c:          &PixelColor,
     );
 
-    fn PixelAt(
+    fn pixel_at(
         &self,
         x:          u32,
         y:          u32,
@@ -35,7 +35,7 @@ pub struct FrameBufferConfig {
 impl FrameBufferConfig {
     fn new(
         buf:        *mut u8,
-        size:       u32,
+        _size:       u32,
         hor_res:    u32,
         ver_res:    u32,
         ppsl:       u32,
@@ -82,7 +82,7 @@ impl PixelWriter for BGRResv8BitPerColorPixelWriter {
         y:          u32,
         c:          &PixelColor,
     ) {
-        let p = Self::PixelAt(
+        let p = Self::pixel_at(
             &self,
             x,
             y
@@ -101,7 +101,7 @@ impl PixelWriter for BGRResv8BitPerColorPixelWriter {
         p[2] = c.r;
     }
 
-    fn PixelAt(
+    fn pixel_at(
         &self,
         x:          u32,
         y:          u32,
@@ -144,7 +144,7 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
         y:          u32,
         c:          &PixelColor,
     ) {
-        let p = Self::PixelAt(
+        let p = Self::pixel_at(
             &self,
             x,
             y
@@ -163,7 +163,7 @@ impl PixelWriter for RGBResv8BitPerColorPixelWriter {
         p[2] = c.b;
     }
 
-    fn PixelAt(
+    fn pixel_at(
         &self,
         x:          u32,
         y:          u32,
