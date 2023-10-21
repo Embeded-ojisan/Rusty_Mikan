@@ -5,6 +5,7 @@ union InterruptDescriptorAttribute {
 }
 
 #[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
 struct InterruptDescriptorBits {
     interrupt_stack_table: u16,
     reserved1: u16,
@@ -15,7 +16,7 @@ struct InterruptDescriptorBits {
 }
 
 #[repr(u16)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum DescriptorType {
     Type1 = 1,
     Type2 = 2,
