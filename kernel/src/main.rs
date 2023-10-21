@@ -6,6 +6,7 @@ mod graphics;
 mod font;
 mod console;
 mod devices;
+mod kernel_lib;
 
 use core::arch::asm;
 use core::fmt::Write;
