@@ -15,6 +15,7 @@ struct InterruptDescriptorBits {
     present: u16,
 }
 
+
 #[repr(u16)]
 #[derive(Debug, Copy, Clone)]
 enum DescriptorType { 
