@@ -1,1 +1,1 @@
-mod interrupt_framework;
+pub mod interrupt_framework;

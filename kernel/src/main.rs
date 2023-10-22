@@ -7,6 +7,7 @@ mod font;
 mod console;
 mod devices;
 mod kernel_lib;
+mod interrupt;
 
 use core::arch::asm;
 use core::fmt::Write;
