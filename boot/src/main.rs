@@ -18,9 +18,9 @@ use uefi::proto::media::{
 };
 
 use uefi::proto::console::gop::{
-    ModeInfo,
+//    ModeInfo,
     GraphicsOutput,
-    PixelFormat,
+//    PixelFormat,
 };
 
 use uefi::table::boot::{
@@ -33,7 +33,7 @@ use uefi::data_types::PhysicalAddress;
 
 //use alloc::vec;
 //use alloc::vec::Vec;
-use alloc::string::*;
+//use alloc::string::*;
 use alloc::format;
 //use alloc::rc::Rc;
 
@@ -44,7 +44,7 @@ use core::mem::transmute;
 use core::slice::from_raw_parts_mut;
 use core::arch::asm;
 //use core::error::Error;
-use core::fmt::*;
+//use core::fmt::*;
 
 use goblin::elf::*;
 
@@ -55,11 +55,11 @@ use lib::{
     FrameBufferInfo,
     MyModeInfo,
     MemoryDescriptor,
-    MemoryMap,
+ //   MemoryMap,
     MEMORY_MAP_SIZE,
 };
 
-fn GetMemoryMap<'a>(
+fn get_memory_map<'a>(
     boot_services:      &'a BootServices,
     memmap_buffer:      &'a mut [u8]
 ) -> MemoryMapIter<'a> {
@@ -71,11 +71,12 @@ fn GetMemoryMap<'a>(
     memory_map_iter
 }
 
-fn PrintMemoryMap(
+/*
+fn print_memory_map(
     memmap_iter: &MemoryMapIter
 ) {
     for (i, d) in memmap_iter.clone().enumerate() {
-        let line = format!(
+        format!(
             "{}, {:x}, {:?}, {:08x}, {:x}, {:x}",
             i,
             d.ty.0,
@@ -86,10 +87,11 @@ fn PrintMemoryMap(
         );
     }
 }
+*/
 
-fn SaveMemoryMap<'a>(
-    mut memmap_iter: &MemoryMapIter<'a>,
-    mut root_dir: &mut Directory,
+fn save_memory_map<'a>(
+    memmap_iter: &MemoryMapIter<'a>,
+    root_dir: &mut Directory,
 ) {
     let mut memmap_file = root_dir
         .open(
@@ -126,19 +128,20 @@ fn SaveMemoryMap<'a>(
 *       info!("{}", type_of(&kernel_file_size));
 *
 */
-
+/*
 fn type_of<T>(_: T) -> String{
     let a = core::any::type_name::<T>();
     return a.to_string();
   }
+*/
 
-fn Halt() {
+fn halt() {
     loop {
         unsafe { asm!("hlt") }
     }
 }
 
-fn CopyLoadSegments<'a>(
+fn copy_load_segments<'a>(
     elf:                &'a Elf<'_>,
     kernel_buffer:      &[u8]
 ) {
@@ -164,7 +167,7 @@ fn CopyLoadSegments<'a>(
     }
 }
 
-fn CalcLoadAddressRange<'a>(
+fn calc_load_address_range<'a>(
     elf:    &'a Elf<'_>,
     mut first: usize,
     mut last:  usize,
@@ -189,7 +192,7 @@ fn CalcLoadAddressRange<'a>(
     (first, last)
 }
 
-fn OpenRootDir(
+fn open_root_dir(
     image_handle: &mut Handle,
     system_table: &mut SystemTable<Boot>,
 ) -> Directory {
@@ -199,7 +202,7 @@ fn OpenRootDir(
             .get_image_file_system(*image_handle)
             .unwrap();
     
-    let mut root_dir = 
+    let root_dir = 
         simple_file_system
             .open_volume()
             .unwrap();
@@ -207,9 +210,9 @@ fn OpenRootDir(
     root_dir
 }
 
-fn LoadKernel<'a>(
+fn load_kernel<'a>(
     system_table: &'a SystemTable<Boot>,
-    mut root_dir: &'a mut Directory,
+    root_dir: &'a mut Directory,
 ) -> Elf<'a> {
     let kernel_file_handle = 
         root_dir.open(
@@ -257,7 +260,7 @@ fn LoadKernel<'a>(
             .unwrap();
 
 
-    kernel_file_handle
+    let _ = kernel_file_handle
         .into_regular_file()
         .unwrap()
         .read(
@@ -266,10 +269,10 @@ fn LoadKernel<'a>(
 
     let elf: Elf = Elf::parse(kernel_buffer).unwrap(); 
 
-    let mut kernel_first_address=0;
-    let mut kernel_last_address=0;
+    let kernel_first_address=0;
+    let kernel_last_address=0;
     let (kernel_first_address, kernel_last_address) =
-        CalcLoadAddressRange(
+        calc_load_address_range(
             &elf,
             kernel_first_address,
             kernel_last_address,
@@ -295,11 +298,11 @@ fn LoadKernel<'a>(
             kernel_physical_addr = some;
         },
         Err(err) => {
-            Halt();
+            halt();
         },
     }
 
-    CopyLoadSegments(&elf, kernel_buffer);
+    copy_load_segments(&elf, kernel_buffer);
 
     elf
 }
@@ -312,9 +315,9 @@ fn main(
     uefi_services::init(&mut system_table).unwrap();
 
     // 前処理
-    info!("OpenRootDir!");
+    info!("open_root_dir!");
     let mut root_dir = 
-        OpenRootDir(
+        open_root_dir(
             &mut image_handle,
             &mut system_table
         );
@@ -328,27 +331,27 @@ fn main(
     info!("{}", memmap_size.map_size);
     let mut memmap_buffer = [0 as u8; 8000];
 
-    info!("GetMemoryMap!");
+    info!("get_memory_map!");
     let memory_map_iter =
-        GetMemoryMap(
+        get_memory_map(
             system_table.boot_services(),
             &mut memmap_buffer
         );
 
 /*
-    PrintMemoryMap(
+    print_memory_map(
         &memory_map_iter,
     );
 */
 
-    info!("SaveMemoryMap!");
-    SaveMemoryMap(
+    info!("save_memory_map!");
+    save_memory_map(
         &memory_map_iter,
         &mut root_dir,
     );
 
     // カーネルファイルを読み出し
-    let elf = LoadKernel(&system_table, &mut root_dir);
+    let elf = load_kernel(&system_table, &mut root_dir);
     
 
     // 
@@ -363,7 +366,7 @@ fn main(
                 .unwrap()
         };
 
-    let mut mode_info: MyModeInfo 
+    let mode_info: MyModeInfo 
         = gop
             .current_mode_info()
             .into();
@@ -372,7 +375,7 @@ fn main(
         gop
             .frame_buffer();
 
-    let mut frame_buffer_info =
+    let frame_buffer_info =
         FrameBufferInfo {
             fb: 
                 frame_buffer
@@ -388,7 +391,7 @@ fn main(
     
     exit_boot_services();
 
-    let mut memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE] =
+    let memory_map: [MemoryDescriptor; MEMORY_MAP_SIZE] =
         [Default::default(); MEMORY_MAP_SIZE];
 
 /*
