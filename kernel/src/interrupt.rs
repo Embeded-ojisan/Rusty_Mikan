@@ -1,4 +1,4 @@
-use alloc::vec::*;
+use lib::allocator::*;
 
 use crate::kernel_lib::interrupt_framework::*;
 

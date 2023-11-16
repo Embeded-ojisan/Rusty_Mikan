@@ -1,6 +1,8 @@
 #![crate_type = "lib"]
 #![no_std]
 
+pub mod allocator;
+
 //pub const MEMORY_MAP_SIZE: usize = 100;
 pub const MEMORY_MAP_SIZE: usize = 8000;
 

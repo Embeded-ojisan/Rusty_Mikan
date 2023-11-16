@@ -1,6 +1,8 @@
-use alloc::alloc::{GlobalAlloc, Layout};
+#![feature(const_mut_refs)]
 
-use crate::mutex::Mutex;
+use core::alloc::{GlobalAlloc, Layout};
+
+//use  core::sync::Mutex;
 
 struct ListNode {
     size: usize,
@@ -85,6 +87,7 @@ impl SimpleAllocator {
     }
 }
 
+/*
 unsafe impl GlobalAlloc for Mutex<SimpleAllocator> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.lock().alloc(layout)
@@ -93,3 +96,4 @@ unsafe impl GlobalAlloc for Mutex<SimpleAllocator> {
         self.lock().dealloc(ptr, layout);
     }
 }
+*/
